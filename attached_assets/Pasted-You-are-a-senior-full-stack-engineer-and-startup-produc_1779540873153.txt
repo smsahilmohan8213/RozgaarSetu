@@ -1,0 +1,437 @@
+You are a senior full-stack engineer and startup product designer.
+
+Build a COMPLETE production-ready hyperlocal hiring platform called “RozgaarSetu” for India using Replit.
+
+==================================================
+TECH STACK
+==========
+
+Frontend:
+
+* React
+* TypeScript
+* Tailwind CSS
+* Framer Motion
+
+Backend:
+
+* Node.js
+* Express.js
+
+Database:
+
+* Supabase or Firebase
+
+Authentication:
+
+* OTP Login
+* Google Login
+* Role-based authentication
+
+Storage:
+
+* Resume uploads
+* Company logos
+
+Deployment:
+
+* Replit compatible
+* Mobile-first responsive app
+* PWA ready
+
+==================================================
+APP GOAL
+========
+
+Create a real startup-grade hyperlocal hiring app inspired by:
+
+* Apna
+* WorkIndia
+* LinkedIn mobile
+* Zepto
+* Blinkit
+
+The app should feel:
+
+* premium
+* modern
+* hyperlocal
+* fast
+* trustworthy
+* investor-ready
+* scalable
+* startup-quality
+
+==================================================
+DESIGN SYSTEM
+=============
+
+Use:
+
+* Blue gradient branding
+* Rounded 30px+ cards
+* Soft shadows
+* Glassmorphism
+* Modern typography
+* Smooth animations
+* Mobile-first layout
+* Android optimized UI
+* Clean spacing
+* Large touch-friendly buttons
+
+Use:
+
+* dark mode
+* smooth transitions
+* loading shimmer
+* skeleton loaders
+
+==================================================
+AUTHENTICATION SYSTEM
+=====================
+
+Add:
+
+* OTP login
+* Google login
+* Job Seeker role
+* Employer role
+* Persistent sessions
+* Protected routes
+
+==================================================
+HOMEPAGE
+========
+
+Create a premium startup-style homepage.
+
+Sections:
+
+* Greeting section
+* Search bar
+* Featured jobs
+* Nearby jobs
+* Trending jobs
+* Urgent hiring feed
+* Recently posted jobs
+
+North Delhi localities:
+
+* Jahangirpuri
+* Rohini
+* Azadpur
+* Pitampura
+* Mukherjee Nagar
+* Model Town
+* GTB Nagar
+* Ashok Vihar
+* Shalimar Bagh
+
+Add:
+
+* horizontal location chips
+* sticky search bar
+* smooth scrolling
+* pull-to-refresh
+
+==================================================
+JOB CARDS
+=========
+
+Modern premium cards with:
+
+* company logo
+* job title
+* company name
+* verified badge
+* trusted employer tag
+* salary highlight
+* distance
+* posted time
+* experience required
+* bookmark icon
+* Apply Now button
+* WhatsApp Apply button
+* urgent hiring badge
+
+Use:
+
+* rounded startup-style cards
+* premium spacing
+* soft shadows
+* smooth animations
+
+==================================================
+WORKING APPLY FLOW
+==================
+
+Create complete apply flow:
+
+* one-tap apply
+* apply confirmation modal
+* applied jobs page
+* application tracking
+* quick apply using saved resume
+
+==================================================
+WHATSAPP APPLY
+==============
+
+Use:
+https://wa.me/91XXXXXXXXXX
+
+Prefilled message:
+“Hi, I want to apply for this job from RozgaarSetu.”
+
+==================================================
+EMPLOYER DASHBOARD
+==================
+
+Complete employer panel:
+
+* post jobs
+* edit/delete jobs
+* upload company logo
+* salary range
+* category selection
+* experience required
+* WhatsApp number
+* preview before publish
+* manage applicants
+* shortlist candidates
+
+==================================================
+EMPLOYER VERIFICATION
+=====================
+
+Add:
+
+* GST upload
+* verification request system
+* verified employer badges
+* trusted employer tags
+
+==================================================
+REALISTIC DEMO JOBS
+===================
+
+Add 20+ realistic Indian jobs:
+
+* Delivery Boy
+* Accountant
+* Telecaller
+* Office Assistant
+* Receptionist
+* Driver
+* BPO Executive
+* Sales Executive
+* Security Guard
+* Electrician
+* Warehouse Staff
+* Cook
+* Data Entry Operator
+
+Include:
+
+* realistic salaries
+* realistic company names
+* realistic locations
+* company logos
+* urgency badges
+* realistic posted times
+
+==================================================
+NEARBY JOBS
+===========
+
+Add:
+
+* GPS-based nearby jobs
+* nearest jobs sorting
+* jobs within 2–5km
+* urgent nearby jobs
+* live jobs feed
+
+==================================================
+SAVED JOBS
+==========
+
+Add:
+
+* bookmark jobs
+* saved jobs page
+* persistent saved jobs storage
+
+==================================================
+NOTIFICATIONS
+=============
+
+Notification system:
+
+* nearby jobs alerts
+* employer response alerts
+* application updates
+* urgent hiring notifications
+
+==================================================
+RESUME FEATURES
+===============
+
+Add:
+
+* resume upload
+* resume preview
+* resume builder
+* profile completion score
+
+==================================================
+SEARCH & FILTERS
+================
+
+Add filters:
+
+* salary
+* distance
+* category
+* locality
+* experience
+* job type
+
+Add:
+
+* voice search
+* AI smart recommendations
+
+==================================================
+PROFILE SYSTEM
+==============
+
+Job seeker profile:
+
+* profile photo
+* skills
+* education
+* experience
+* preferred location
+* languages
+
+Employer profile:
+
+* company logo
+* company description
+* active jobs
+* hiring stats
+
+==================================================
+ADMIN PANEL
+===========
+
+Role-based admin dashboard:
+
+* verify employers
+* remove fake jobs
+* manage reports
+* ban spam users
+* monitor platform activity
+
+==================================================
+EXTRA FEATURES
+==============
+
+Add:
+
+* Hindi + English toggle
+* dark mode
+* referral rewards UI
+* report fake jobs feature
+* interview scheduling UI
+* attendance tracking UI
+* company profile pages
+* “Just Posted” badges
+* “X people applied” counters
+* freshers-only jobs section
+* negotiable salary option
+
+==================================================
+DATABASE STRUCTURE
+==================
+
+Create tables/collections:
+
+* users
+* jobs
+* employers
+* applications
+* bookmarks
+* resumes
+* notifications
+
+Enable realtime updates.
+
+==================================================
+BOTTOM NAVIGATION
+=================
+
+Tabs:
+
+* Home
+* Jobs
+* Nearby
+* Saved
+* Profile
+
+Use:
+
+* floating glassmorphism navbar
+* smooth active animations
+* premium spacing
+
+==================================================
+PERFORMANCE
+===========
+
+Optimize:
+
+* lazy loading
+* image optimization
+* fast rendering
+* reusable components
+* scalable folder structure
+* clean architecture
+
+Fix:
+
+* overflow bugs
+* responsiveness issues
+* hidden text
+* spacing problems
+
+==================================================
+FINAL GOAL
+==========
+
+Build a REAL working startup-grade hiring platform.
+
+Do NOT create a basic demo.
+
+Create:
+
+* full frontend
+* backend APIs
+* authentication
+* database integration
+* working dashboards
+* working apply system
+* realistic UX
+* scalable architecture
+
+The app should feel like:
+
+* Apna
+* WorkIndia
+* LinkedIn mobile
+* Zepto
+* Blinkit
+* CRED-level polish
+
+Build the app completely from start to finish with production-ready code and responsive mobile UX.

@@ -1,45 +1,67 @@
-# [Project name]
+# RozgaarSetu
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A premium hyperlocal hiring platform for India — connecting job seekers and employers in North Delhi localities like Rohini, Pitampura, Azadpur, and more.
 
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/mobile run dev` — run the Expo mobile app
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required env: `DATABASE_URL` — Postgres connection string (if backend features added)
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Mobile: Expo (React Native), Expo Router (file-based navigation)
+- State: React Context + AsyncStorage (frontend-only, no backend required)
+- API: Express 5 (pre-configured, for future use)
+- DB: PostgreSQL + Drizzle ORM (pre-configured, for future use)
+- Fonts: Inter (400/500/600/700)
+- Icons: @expo/vector-icons (Ionicons, MaterialCommunityIcons)
+- Animation: react-native-reanimated
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/mobile/` — Expo mobile app
+  - `app/(tabs)/` — 5 tab screens: Home, Jobs, Nearby, Saved, Profile
+  - `app/job/[id].tsx` — Job detail screen
+  - `app/apply/[id].tsx` — Apply confirmation flow
+  - `app/auth/index.tsx` — OTP + role authentication
+  - `data/jobs.ts` — 22+ realistic demo jobs
+  - `context/AppContext.tsx` — Global state (auth, saved jobs, applications)
+  - `components/` — JobCard, SkeletonCard, SearchHeader
+  - `constants/colors.ts` — Light + dark theme tokens
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Frontend-only for first build: all state persisted via AsyncStorage (no backend calls yet)
+- AsyncStorage keys: `@rozgaar_user`, `@rozgaar_saved`, `@rozgaar_applied`
+- OTP flow is simulated (any 4-digit OTP accepted) — ready for real SMS integration
+- GPS location for Nearby tab uses expo-location; falls back to Rohini coordinates if denied
+- WhatsApp apply uses `wa.me` deep link with a prefilled message
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+RozgaarSetu is a hyperlocal job marketplace for North Delhi. Users can:
+- Browse 22+ realistic Indian jobs across 10 categories
+- Filter by locality (Rohini, Pitampura, Azadpur, etc.) and category
+- Apply in one tap or via WhatsApp
+- Save jobs with bookmark icon
+- View nearby jobs sorted by GPS distance
+- Create a profile with role selection (Job Seeker / Employer)
+- Track applied jobs in the Saved tab
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- App name: RozgaarSetu
+- Target market: North Delhi hyperlocal workers
+- Color scheme: Blue gradient (#2563EB primary), light + dark mode
+- Mobile-first, no backend in first build
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Do not change `expo.slug` in app.json — breaks bundle routing
+- Always run `pnpm --filter @workspace/api-spec run codegen` after OpenAPI changes
+- expo-location requires Platform.OS check for web (use navigator.geolocation instead)
+- uuid package is NOT compatible with Expo Go — use Date.now() + Math.random() instead
