@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
   Platform,
@@ -32,96 +33,118 @@ export function SearchHeader({
   const isWeb = Platform.OS === "web";
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: colors.background,
-          paddingTop: isWeb ? 67 : insets.top + 8,
-          borderBottomColor: colors.border,
-        },
-      ]}
-    >
-      <View style={styles.topRow}>
-        <View>
-          <Text style={[styles.greeting, { color: colors.mutedForeground }]}>
-            {greeting} 👋
-          </Text>
-          <Text style={[styles.name, { color: colors.foreground }]}>
-            {name}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.notifBtn, { backgroundColor: colors.muted }]}
-          onPress={onNotification}
-        >
-          <Ionicons name="notifications-outline" size={22} color={colors.foreground} />
-          <View style={[styles.notifDot, { backgroundColor: colors.urgent }]} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Ionicons name="search" size={18} color={colors.mutedForeground} />
-        <TextInput
-          style={[styles.searchInput, { color: colors.foreground }]}
-          placeholder="Search jobs, companies, skills..."
-          placeholderTextColor={colors.mutedForeground}
-          value={searchValue}
-          onChangeText={onSearchChange}
-        />
-        {searchValue.length > 0 && (
-          <TouchableOpacity onPress={() => onSearchChange("")}>
-            <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+    <View style={styles.wrapper}>
+      <LinearGradient
+        colors={[colors.gradientStart, colors.gradientMid, colors.gradientEnd]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[
+          styles.gradient,
+          { paddingTop: isWeb ? 67 : insets.top + 12 },
+        ]}
+      >
+        <View style={styles.topRow}>
+          <View>
+            <Text style={styles.greeting}>{greeting} 👋</Text>
+            <Text style={styles.name}>{name}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.notifBtn}
+            onPress={onNotification}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="notifications" size={20} color="#fff" />
+            <View style={styles.notifDot} />
           </TouchableOpacity>
-        )}
+        </View>
+      </LinearGradient>
+
+      <View style={styles.searchWrapper}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={18} color={colors.mutedForeground} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.foreground }]}
+            placeholder="Search jobs, companies, skills..."
+            placeholderTextColor={colors.mutedForeground}
+            value={searchValue}
+            onChangeText={onSearchChange}
+          />
+          {searchValue.length > 0 && (
+            <TouchableOpacity onPress={() => onSearchChange("")}>
+              <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
+  wrapper: {
+    zIndex: 10,
+  },
+  gradient: {
+    paddingHorizontal: 20,
+    paddingBottom: 36,
   },
   topRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 14,
+    marginBottom: 6,
   },
   greeting: {
     fontSize: 13,
+    color: "rgba(255,255,255,0.85)",
     fontFamily: "Inter_400Regular",
+    letterSpacing: 0.1,
   },
   name: {
-    fontSize: 22,
+    fontSize: 24,
+    color: "#FFFFFF",
     fontFamily: "Inter_700Bold",
+    letterSpacing: -0.3,
   },
   notifBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "rgba(255,255,255,0.2)",
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
   },
   notifDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
+    backgroundColor: "#FCD34D",
     position: "absolute",
-    top: 10,
-    right: 10,
+    top: 9,
+    right: 9,
+    borderWidth: 1.5,
+    borderColor: "rgba(30,64,175,0.6)",
+  },
+  searchWrapper: {
+    paddingHorizontal: 16,
+    marginTop: -22,
+    marginBottom: 4,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 16,
-    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#1E40AF",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 6,
   },
   searchInput: {
     flex: 1,

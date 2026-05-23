@@ -40,22 +40,18 @@ export function JobCard({ job, compact = false }: JobCardProps) {
   }));
 
   function onPressIn() {
-    scale.value = withSpring(0.97, { damping: 20 });
+    scale.value = withSpring(0.975, { damping: 20 });
   }
-
   function onPressOut() {
     scale.value = withSpring(1, { damping: 20 });
   }
-
   function onPress() {
     router.push(`/job/${job.id}`);
   }
-
   async function onSave() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     toggleSaveJob(job.id);
   }
-
   function onWhatsApp() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const msg = encodeURIComponent(
@@ -76,13 +72,13 @@ export function JobCard({ job, compact = false }: JobCardProps) {
     >
       {job.isUrgent && (
         <View style={styles.urgentBanner}>
-          <Ionicons name="flash" size={11} color={colors.urgentFg || "#fff"} />
+          <Ionicons name="flash" size={10} color="#fff" />
           <Text style={styles.urgentText}>URGENT HIRING</Text>
         </View>
       )}
 
       <View style={styles.header}>
-        <View style={[styles.logo, { backgroundColor: job.logoColor + "22" }]}>
+        <View style={[styles.logo, { backgroundColor: job.logoColor + "18" }]}>
           <Text style={[styles.logoText, { color: job.logoColor }]}>
             {job.logoInitials}
           </Text>
@@ -90,111 +86,81 @@ export function JobCard({ job, compact = false }: JobCardProps) {
 
         <View style={styles.headerMeta}>
           <View style={styles.titleRow}>
-            <Text style={styles.jobTitle} numberOfLines={1}>
+            <Text style={[styles.jobTitle, { color: colors.foreground }]} numberOfLines={1}>
               {job.title}
             </Text>
-            <TouchableOpacity onPress={onSave} style={styles.saveBtn}>
+            <TouchableOpacity onPress={onSave} style={styles.saveBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons
                 name={saved ? "bookmark" : "bookmark-outline"}
                 size={20}
-                color={saved ? colors.primary : colors.mutedForeground}
+                color={saved ? colors.primary : "#CBD5E1"}
               />
             </TouchableOpacity>
           </View>
 
           <View style={styles.companyRow}>
-            <Text style={styles.companyName} numberOfLines={1}>
+            <Text style={[styles.companyName, { color: colors.mutedForeground }]} numberOfLines={1}>
               {job.company}
             </Text>
             {job.isVerified && (
-              <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark-circle" size={12} color={colors.success} />
-                <Text style={[styles.badgeText, { color: colors.success }]}>
-                  Verified
-                </Text>
+              <View style={[styles.badge, { backgroundColor: "#D1FAE5" }]}>
+                <Ionicons name="checkmark-circle" size={11} color="#059669" />
+                <Text style={[styles.badgeText, { color: "#059669" }]}>Verified</Text>
               </View>
             )}
             {job.isTrusted && (
-              <View style={[styles.verifiedBadge, { backgroundColor: colors.accent }]}>
-                <Ionicons name="shield-checkmark" size={12} color={colors.primary} />
-                <Text style={[styles.badgeText, { color: colors.primary }]}>
-                  Trusted
-                </Text>
+              <View style={[styles.badge, { backgroundColor: colors.accent }]}>
+                <Ionicons name="shield-checkmark" size={11} color={colors.primary} />
+                <Text style={[styles.badgeText, { color: colors.primary }]}>Trusted</Text>
               </View>
             )}
           </View>
         </View>
       </View>
 
-      <View style={styles.salaryRow}>
-        <View style={styles.salaryBadge}>
-          <Ionicons name="cash-outline" size={14} color={colors.success} />
-          <Text style={styles.salaryText}>{job.salary}</Text>
-          {job.isNegotiable && (
-            <Text style={styles.negotiable}> · Negotiable</Text>
-          )}
-        </View>
+      <View style={[styles.salaryStrip, { backgroundColor: "#F0FDF4" }]}>
+        <Ionicons name="cash-outline" size={15} color="#059669" />
+        <Text style={styles.salaryText}>{job.salary}</Text>
+        {job.isNegotiable && (
+          <Text style={[styles.negotiable, { color: colors.mutedForeground }]}> · Negotiable</Text>
+        )}
         {job.isFreshersOk && (
           <View style={styles.fresherBadge}>
-            <Text style={styles.fresherText}>Freshers OK</Text>
+            <Text style={[styles.fresherText, { color: colors.primary }]}>Freshers OK</Text>
           </View>
         )}
       </View>
 
       {!compact && (
         <View style={styles.metaGrid}>
-          <MetaChip
-            icon="location-outline"
-            label={`${job.location} · ${job.distanceKm} km`}
-            colors={colors}
-          />
-          <MetaChip
-            icon="briefcase-outline"
-            label={job.experience}
-            colors={colors}
-          />
-          <MetaChip
-            icon="time-outline"
-            label={job.postedTime}
-            colors={colors}
-          />
-          <MetaChip
-            icon="people-outline"
-            label={`${job.applicants} applied`}
-            colors={colors}
-          />
+          <MetaChip icon="location-outline" label={`${job.location} · ${job.distanceKm} km`} colors={colors} />
+          <MetaChip icon="briefcase-outline" label={job.experience} colors={colors} />
+          <MetaChip icon="time-outline" label={job.postedTime} colors={colors} />
+          <MetaChip icon="people-outline" label={`${job.applicants} applied`} colors={colors} />
         </View>
       )}
 
       {compact && (
         <View style={styles.compactMeta}>
-          <MetaChip
-            icon="location-outline"
-            label={`${job.location}`}
-            colors={colors}
-          />
-          <MetaChip
-            icon="time-outline"
-            label={job.postedTime}
-            colors={colors}
-          />
+          <MetaChip icon="location-outline" label={job.location} colors={colors} />
+          <MetaChip icon="time-outline" label={job.postedTime} colors={colors} />
         </View>
       )}
 
       {!compact && (
         <View style={styles.actions}>
           <TouchableOpacity
-            style={[styles.applyBtn, applied && styles.appliedBtn]}
+            style={[styles.applyBtn, applied && { backgroundColor: "#059669" }]}
             onPress={() => router.push(`/apply/${job.id}`)}
             disabled={applied}
+            activeOpacity={0.85}
           >
-            <Text style={styles.applyBtnText}>
-              {applied ? "Applied" : "Apply Now"}
-            </Text>
+            <Ionicons name={applied ? "checkmark" : "send"} size={15} color="#fff" />
+            <Text style={styles.applyBtnText}>{applied ? "Applied" : "Apply Now"}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.waBtn} onPress={onWhatsApp}>
-            <MaterialCommunityIcons name="whatsapp" size={18} color="#25D366" />
+          <TouchableOpacity style={styles.waBtn} onPress={onWhatsApp} activeOpacity={0.8}>
+            <MaterialCommunityIcons name="whatsapp" size={17} color="#25D366" />
             <Text style={styles.waBtnText}>WhatsApp</Text>
           </TouchableOpacity>
         </View>
@@ -203,25 +169,11 @@ export function JobCard({ job, compact = false }: JobCardProps) {
   );
 }
 
-function MetaChip({
-  icon,
-  label,
-  colors,
-}: {
-  icon: string;
-  label: string;
-  colors: ReturnType<typeof useColors>;
-}) {
+function MetaChip({ icon, label, colors }: { icon: string; label: string; colors: ReturnType<typeof useColors> }) {
   return (
-    <View style={[chipStyles.chip, { backgroundColor: colors.muted }]}>
-      <Ionicons
-        name={icon as "location-outline"}
-        size={12}
-        color={colors.mutedForeground}
-      />
-      <Text style={[chipStyles.chipText, { color: colors.mutedForeground }]}>
-        {label}
-      </Text>
+    <View style={[chipStyles.chip, { backgroundColor: "#F1F5F9" }]}>
+      <Ionicons name={icon as "location-outline"} size={11} color="#64748B" />
+      <Text style={chipStyles.chipText}>{label}</Text>
     </View>
   );
 }
@@ -231,12 +183,13 @@ const chipStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 20,
   },
   chipText: {
     fontSize: 11,
+    color: "#64748B",
     fontFamily: Platform.OS === "ios" ? "System" : "Inter_400Regular",
   },
 });
@@ -244,17 +197,15 @@ const chipStyles = StyleSheet.create({
 function getStyles(colors: ReturnType<typeof useColors>) {
   return StyleSheet.create({
     card: {
-      backgroundColor: colors.card,
-      borderRadius: 20,
+      backgroundColor: "#FFFFFF",
+      borderRadius: 24,
       padding: 16,
-      marginBottom: 12,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
+      marginBottom: 14,
+      shadowColor: "#3B5BDB",
+      shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.08,
-      shadowRadius: 12,
-      elevation: 3,
-      borderWidth: 1,
-      borderColor: colors.border,
+      shadowRadius: 20,
+      elevation: 4,
     },
     urgentBanner: {
       flexDirection: "row",
@@ -271,28 +222,26 @@ function getStyles(colors: ReturnType<typeof useColors>) {
       fontSize: 10,
       color: "#fff",
       fontFamily: "Inter_700Bold",
-      letterSpacing: 0.5,
+      letterSpacing: 0.6,
     },
     header: {
       flexDirection: "row",
       alignItems: "flex-start",
       gap: 12,
-      marginBottom: 10,
+      marginBottom: 12,
     },
     logo: {
-      width: 48,
-      height: 48,
-      borderRadius: 14,
+      width: 50,
+      height: 50,
+      borderRadius: 16,
       alignItems: "center",
       justifyContent: "center",
     },
     logoText: {
-      fontSize: 13,
+      fontSize: 14,
       fontFamily: "Inter_700Bold",
     },
-    headerMeta: {
-      flex: 1,
-    },
+    headerMeta: { flex: 1 },
     titleRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -301,70 +250,53 @@ function getStyles(colors: ReturnType<typeof useColors>) {
     jobTitle: {
       fontSize: 16,
       fontFamily: "Inter_600SemiBold",
-      color: colors.foreground,
       flex: 1,
       marginRight: 8,
     },
-    saveBtn: {
-      padding: 2,
-    },
+    saveBtn: { padding: 2 },
     companyRow: {
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
-      marginTop: 3,
+      marginTop: 4,
       flexWrap: "wrap",
     },
     companyName: {
       fontSize: 13,
-      color: colors.mutedForeground,
       fontFamily: "Inter_400Regular",
     },
-    verifiedBadge: {
+    badge: {
       flexDirection: "row",
       alignItems: "center",
       gap: 3,
-      backgroundColor: colors.successFg,
-      paddingHorizontal: 6,
+      paddingHorizontal: 7,
       paddingVertical: 2,
       borderRadius: 20,
     },
-    badgeText: {
-      fontSize: 10,
-      fontFamily: "Inter_600SemiBold",
-    },
-    salaryRow: {
+    badgeText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
+    salaryStrip: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 10,
-    },
-    salaryBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 5,
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      borderRadius: 14,
+      marginBottom: 12,
     },
     salaryText: {
       fontSize: 14,
       fontFamily: "Inter_700Bold",
-      color: colors.success,
+      color: "#059669",
+      flex: 1,
     },
-    negotiable: {
-      fontSize: 12,
-      color: colors.mutedForeground,
-      fontFamily: "Inter_400Regular",
-    },
+    negotiable: { fontSize: 12, fontFamily: "Inter_400Regular" },
     fresherBadge: {
       backgroundColor: colors.accent,
       paddingHorizontal: 8,
-      paddingVertical: 3,
+      paddingVertical: 2,
       borderRadius: 20,
     },
-    fresherText: {
-      fontSize: 11,
-      color: colors.primary,
-      fontFamily: "Inter_600SemiBold",
-    },
+    fresherText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
     metaGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
@@ -374,7 +306,7 @@ function getStyles(colors: ReturnType<typeof useColors>) {
     compactMeta: {
       flexDirection: "row",
       gap: 6,
-      marginTop: 4,
+      marginTop: 2,
     },
     actions: {
       flexDirection: "row",
@@ -382,13 +314,13 @@ function getStyles(colors: ReturnType<typeof useColors>) {
     },
     applyBtn: {
       flex: 1,
-      backgroundColor: colors.primary,
-      paddingVertical: 11,
-      borderRadius: 14,
+      flexDirection: "row",
       alignItems: "center",
-    },
-    appliedBtn: {
-      backgroundColor: colors.success,
+      justifyContent: "center",
+      gap: 6,
+      backgroundColor: colors.primary,
+      paddingVertical: 12,
+      borderRadius: 14,
     },
     applyBtnText: {
       color: "#fff",
@@ -399,15 +331,15 @@ function getStyles(colors: ReturnType<typeof useColors>) {
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
-      backgroundColor: "#25D36620",
+      backgroundColor: "#F0FDF4",
       paddingHorizontal: 16,
-      paddingVertical: 11,
+      paddingVertical: 12,
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: "#25D36640",
+      borderColor: "#BBF7D0",
     },
     waBtnText: {
-      color: "#25D366",
+      color: "#16A34A",
       fontFamily: "Inter_600SemiBold",
       fontSize: 13,
     },

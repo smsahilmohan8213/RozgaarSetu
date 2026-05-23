@@ -3,9 +3,9 @@ import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
@@ -39,9 +39,7 @@ function NativeTabLayout() {
 
 function ClassicTabLayout() {
   const colors = useColors();
-  const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
-  const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
@@ -50,27 +48,33 @@ function ClassicTabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
+        tabBarInactiveTintColor: "#94A3B8",
+        tabBarLabelStyle: {
+          fontFamily: "Inter_500Medium",
+          fontSize: 11,
+          marginTop: 1,
+        },
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: isIOS ? "transparent" : colors.background,
-          borderTopWidth: 1,
-          borderTopColor: colors.border,
+          backgroundColor: isIOS ? "transparent" : "#FFFFFF",
+          borderTopWidth: 0,
           elevation: 0,
           paddingBottom: insets.bottom,
-          ...(isWeb ? { height: 84 } : {}),
+          shadowColor: "#3B5BDB",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 16,
+          ...(isWeb ? { height: 80 } : {}),
         },
         tabBarBackground: () =>
           isIOS ? (
             <BlurView
-              intensity={100}
-              tint={isDark ? "dark" : "light"}
-              style={StyleSheet.absoluteFill}
+              intensity={95}
+              tint="light"
+              style={[StyleSheet.absoluteFill, styles.tabBarBg]}
             />
           ) : isWeb ? (
-            <View
-              style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}
-            />
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: "#FFFFFF" }]} />
           ) : null,
       }}
     >
@@ -78,11 +82,11 @@ function ClassicTabLayout() {
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
-              <SymbolView name="house" tintColor={color} size={24} />
+              <SymbolView name={focused ? "house.fill" : "house"} tintColor={color} size={24} />
             ) : (
-              <Ionicons name="home" size={23} color={color} />
+              <Ionicons name={focused ? "home" : "home-outline"} size={23} color={color} />
             ),
         }}
       />
@@ -90,11 +94,11 @@ function ClassicTabLayout() {
         name="jobs"
         options={{
           title: "Jobs",
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
-              <SymbolView name="briefcase" tintColor={color} size={24} />
+              <SymbolView name={focused ? "briefcase.fill" : "briefcase"} tintColor={color} size={24} />
             ) : (
-              <Ionicons name="briefcase" size={22} color={color} />
+              <Ionicons name={focused ? "briefcase" : "briefcase-outline"} size={22} color={color} />
             ),
         }}
       />
@@ -102,11 +106,11 @@ function ClassicTabLayout() {
         name="nearby"
         options={{
           title: "Nearby",
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
-              <SymbolView name="location" tintColor={color} size={24} />
+              <SymbolView name={focused ? "location.fill" : "location"} tintColor={color} size={24} />
             ) : (
-              <Ionicons name="location" size={22} color={color} />
+              <Ionicons name={focused ? "location" : "location-outline"} size={22} color={color} />
             ),
         }}
       />
@@ -114,11 +118,11 @@ function ClassicTabLayout() {
         name="saved"
         options={{
           title: "Saved",
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
-              <SymbolView name="bookmark" tintColor={color} size={24} />
+              <SymbolView name={focused ? "bookmark.fill" : "bookmark"} tintColor={color} size={24} />
             ) : (
-              <Ionicons name="bookmark" size={22} color={color} />
+              <Ionicons name={focused ? "bookmark" : "bookmark-outline"} size={22} color={color} />
             ),
         }}
       />
@@ -126,17 +130,24 @@ function ClassicTabLayout() {
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color }) =>
+          tabBarIcon: ({ color, focused }) =>
             isIOS ? (
-              <SymbolView name="person" tintColor={color} size={24} />
+              <SymbolView name={focused ? "person.fill" : "person"} tintColor={color} size={24} />
             ) : (
-              <Ionicons name="person" size={22} color={color} />
+              <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />
             ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBarBg: {
+    borderTopWidth: 0.5,
+    borderTopColor: "rgba(0,0,0,0.06)",
+  },
+});
 
 export default function TabLayout() {
   if (isLiquidGlassAvailable()) {

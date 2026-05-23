@@ -1,0 +1,134 @@
+Redesign the current dark UI into the existing RozgaarSetu premium light theme.
+
+IMPORTANT:
+Do NOT change app structure or functionality.
+Only change visual design/theme.
+
+Use:
+
+* premium light UI
+* blue gradient header
+* white cards
+* soft blue backgrounds
+* rounded modern startup cards
+* clean shadows
+* smooth spacing
+* modern typography
+* mobile-first design
+
+Theme inspiration:
+
+* Apna
+* WorkIndia
+* LinkedIn mobile
+* Zepto clean UI
+
+==================================================
+HEADER
+======
+
+Use:
+
+* bright blue gradient
+* greeting section
+* location display
+* notification button with glass effect
+* large white heading text
+
+==================================================
+SEARCH BAR
+==========
+
+Use:
+
+* large rounded white search bar
+* soft shadow
+* gray placeholder text
+* modern icon spacing
+
+==================================================
+CATEGORY CHIPS
+==============
+
+Use:
+
+* rounded white chips
+* active chip in blue
+* smooth horizontal scrolling
+* clean spacing
+
+==================================================
+JOB CARDS
+=========
+
+Convert dark cards into premium white cards.
+
+Use:
+
+* white background
+* rounded 2xl cards
+* soft shadow
+* blue accents
+* green salary highlight
+* modern button styles
+
+Each card should include:
+
+* company logo
+* verified badge
+* salary
+* distance
+* posted time
+* urgent hiring badge
+* Apply button
+* WhatsApp Apply button
+
+==================================================
+BOTTOM NAVIGATION
+=================
+
+Use:
+
+* white floating navbar
+* blue active tab
+* clean icons
+* premium spacing
+
+==================================================
+BACKGROUND
+==========
+
+Use:
+
+* very light blue/gray background
+* clean startup feel
+* no dark sections
+
+==================================================
+IMPORTANT
+=========
+
+Remove:
+
+* dark theme colors
+* neon effects
+* crypto/gaming style appearance
+
+Keep:
+
+* all current features
+* nearby jobs
+* notifications
+* saved jobs
+* employer system
+* responsiveness
+
+Focus on:
+
+* trust
+* simplicity
+* Indian mass-market usability
+* startup-quality polish
+* smooth UX
+
+Make RozgaarSetu look like a real modern Indian hiring startup app.

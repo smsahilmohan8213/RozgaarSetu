@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  FlatList,
   Platform,
   RefreshControl,
   ScrollView,
@@ -92,19 +92,31 @@ export default function HomeScreen() {
       >
         {!user.isAuthenticated && (
           <TouchableOpacity
-            style={[styles.authBanner, { backgroundColor: colors.accent, borderColor: colors.primary }]}
+            style={styles.authBanner}
             onPress={() => router.push("/auth")}
+            activeOpacity={0.9}
           >
-            <Ionicons name="person-circle-outline" size={28} color={colors.primary} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.authTitle, { color: colors.primary }]}>
-                Sign in for Better Matches
-              </Text>
-              <Text style={[styles.authSub, { color: colors.mutedForeground }]}>
-                Get personalized job alerts near you
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+            <LinearGradient
+              colors={["#EFF6FF", "#DBEAFE"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.authBannerInner}
+            >
+              <View style={styles.authIconWrap}>
+                <Ionicons name="person-circle" size={30} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.authTitle, { color: colors.primary }]}>
+                  Sign in for Better Matches
+                </Text>
+                <Text style={[styles.authSub, { color: colors.mutedForeground }]}>
+                  Get personalized job alerts near you
+                </Text>
+              </View>
+              <View style={[styles.authArrow, { backgroundColor: colors.primary }]}>
+                <Ionicons name="chevron-forward" size={16} color="#fff" />
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
         )}
 
@@ -118,24 +130,16 @@ export default function HomeScreen() {
               key={loc}
               style={[
                 styles.localityChip,
-                {
-                  backgroundColor:
-                    selectedLocality === loc ? colors.primary : colors.card,
-                  borderColor:
-                    selectedLocality === loc ? colors.primary : colors.border,
-                },
+                selectedLocality === loc && styles.localityChipActive,
               ]}
               onPress={() => setSelectedLocality(loc)}
             >
               <Text
                 style={[
                   styles.localityText,
-                  {
-                    color:
-                      selectedLocality === loc
-                        ? "#fff"
-                        : colors.foreground,
-                  },
+                  selectedLocality === loc
+                    ? styles.localityTextActive
+                    : { color: colors.foreground },
                 ]}
               >
                 {loc}
@@ -163,7 +167,12 @@ export default function HomeScreen() {
           </View>
         ) : (
           <>
-            <SectionHeader title="Urgent Hiring" icon="flash" onSeeAll={() => router.push("/(tabs)/jobs")} colors={colors} />
+            <SectionHeader
+              title="Urgent Hiring"
+              icon="flash"
+              onSeeAll={() => router.push("/(tabs)/jobs")}
+              colors={colors}
+            />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -176,12 +185,22 @@ export default function HomeScreen() {
               ))}
             </ScrollView>
 
-            <SectionHeader title="Featured Jobs" icon="star" onSeeAll={() => router.push("/(tabs)/jobs")} colors={colors} />
+            <SectionHeader
+              title="Featured Jobs"
+              icon="star"
+              onSeeAll={() => router.push("/(tabs)/jobs")}
+              colors={colors}
+            />
             {loading
               ? [1, 2].map((i) => <SkeletonCard key={i} />)
               : featuredJobs.map((job) => <JobCard key={job.id} job={job} />)}
 
-            <SectionHeader title="Recently Posted" icon="time" onSeeAll={() => router.push("/(tabs)/jobs")} colors={colors} />
+            <SectionHeader
+              title="Recently Posted"
+              icon="time"
+              onSeeAll={() => router.push("/(tabs)/jobs")}
+              colors={colors}
+            />
             {loading
               ? [1, 2, 3].map((i) => <SkeletonCard key={i} />)
               : recentJobs.slice(0, 4).map((job) => <JobCard key={job.id} job={job} />)}
@@ -206,10 +225,16 @@ function SectionHeader({
   return (
     <View style={secStyles.row}>
       <View style={secStyles.left}>
-        <Ionicons name={icon as "flash"} size={18} color={colors.primary} />
+        <View style={[secStyles.iconWrap, { backgroundColor: colors.accent }]}>
+          <Ionicons name={icon as "flash"} size={14} color={colors.primary} />
+        </View>
         <Text style={[secStyles.title, { color: colors.foreground }]}>{title}</Text>
       </View>
-      <TouchableOpacity onPress={onSeeAll}>
+      <TouchableOpacity
+        style={[secStyles.seeAllBtn, { backgroundColor: colors.accent }]}
+        onPress={onSeeAll}
+        activeOpacity={0.8}
+      >
         <Text style={[secStyles.seeAll, { color: colors.primary }]}>See all</Text>
       </TouchableOpacity>
     </View>
@@ -222,11 +247,23 @@ const secStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 12,
-    marginTop: 4,
+    marginTop: 8,
   },
-  left: { flexDirection: "row", alignItems: "center", gap: 6 },
+  left: { flexDirection: "row", alignItems: "center", gap: 8 },
+  iconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   title: { fontSize: 17, fontFamily: "Inter_700Bold" },
-  seeAll: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  seeAllBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  seeAll: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
 });
 
 function getStyles(colors: ReturnType<typeof useColors>) {
@@ -234,24 +271,58 @@ function getStyles(colors: ReturnType<typeof useColors>) {
     container: { flex: 1 },
     scroll: { paddingHorizontal: 16, paddingTop: 16 },
     authBanner: {
+      borderRadius: 18,
+      marginBottom: 16,
+      overflow: "hidden",
+      shadowColor: "#2563EB",
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.1,
+      shadowRadius: 10,
+      elevation: 3,
+    },
+    authBannerInner: {
       flexDirection: "row",
       alignItems: "center",
       gap: 12,
       padding: 14,
-      borderRadius: 16,
       borderWidth: 1,
-      marginBottom: 16,
+      borderColor: colors.accent,
+      borderRadius: 18,
+    },
+    authIconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.primary + "15",
+      alignItems: "center",
+      justifyContent: "center",
     },
     authTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
     authSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+    authArrow: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     localityScroll: { gap: 8, paddingBottom: 16 },
     localityChip: {
-      paddingHorizontal: 14,
+      paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: 20,
-      borderWidth: 1,
+      backgroundColor: "#FFFFFF",
+      shadowColor: "#3B5BDB",
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.06,
+      shadowRadius: 6,
+      elevation: 2,
+    },
+    localityChipActive: {
+      backgroundColor: colors.primary,
     },
     localityText: { fontSize: 13, fontFamily: "Inter_500Medium" },
+    localityTextActive: { color: "#fff", fontFamily: "Inter_600SemiBold" },
     section: { marginBottom: 8 },
     sectionTitle: { fontSize: 17, fontFamily: "Inter_700Bold", marginBottom: 12 },
     horizontalScroll: { gap: 10, paddingBottom: 16 },
