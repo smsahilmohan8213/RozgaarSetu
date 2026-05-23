@@ -13,14 +13,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/context/AppContext";
-import { JOBS } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
 
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, logout, savedJobIds, appliedJobIds } = useApp();
+  const { user, logout, savedJobIds, appliedJobIds, postedJobs, deletePostedJob } = useApp();
   const isWeb = Platform.OS === "web";
 
   async function handleLogout() {
@@ -31,11 +30,19 @@ export default function ProfileScreen() {
     }
     Alert.alert("Log Out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
-      {
-        text: "Log Out",
-        style: "destructive",
-        onPress: () => logout(),
-      },
+      { text: "Log Out", style: "destructive", onPress: () => logout() },
+    ]);
+  }
+
+  function handleDeleteJob(jobId: string, title: string) {
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(`Delete "${title}"?`);
+      if (confirmed) deletePostedJob(jobId);
+      return;
+    }
+    Alert.alert("Delete Job", `Remove "${title}" from listings?`, [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => deletePostedJob(jobId) },
     ]);
   }
 
@@ -70,6 +77,7 @@ export default function ProfileScreen() {
     );
   }
 
+  const isEmployer = user.role === "employer";
   const score = user.profileScore;
   const initials = user.name
     .split(" ")
@@ -95,47 +103,152 @@ export default function ProfileScreen() {
         <Text style={[styles.profilePhone, { color: colors.mutedForeground }]}>
           +91 {user.phone}
         </Text>
-        <View style={[styles.rolePill, { backgroundColor: colors.accent }]}>
+        <View style={[styles.rolePill, { backgroundColor: isEmployer ? colors.primary + "18" : colors.accent }]}>
+          <Ionicons
+            name={isEmployer ? "business-outline" : "briefcase-outline"}
+            size={13}
+            color={colors.primary}
+          />
           <Text style={[styles.roleText, { color: colors.primary }]}>
-            {user.role === "employer" ? "Employer" : "Job Seeker"}
+            {isEmployer ? "Employer" : "Job Seeker"}
           </Text>
         </View>
 
-        <View style={styles.scoreSection}>
-          <View style={styles.scoreHeader}>
-            <Text style={[styles.scoreLabel, { color: colors.foreground }]}>
-              Profile Strength
+        {!isEmployer && (
+          <View style={styles.scoreSection}>
+            <View style={styles.scoreHeader}>
+              <Text style={[styles.scoreLabel, { color: colors.foreground }]}>Profile Strength</Text>
+              <Text style={[styles.scorePercent, { color: colors.primary }]}>{score}%</Text>
+            </View>
+            <View style={[styles.scoreBar, { backgroundColor: colors.muted }]}>
+              <View
+                style={[
+                  styles.scoreFill,
+                  {
+                    width: `${score}%` as "100%",
+                    backgroundColor: score >= 80 ? colors.success : colors.primary,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={[styles.scoreHint, { color: colors.mutedForeground }]}>
+              Add skills & education to improve your profile
             </Text>
-            <Text style={[styles.scorePercent, { color: colors.primary }]}>{score}%</Text>
           </View>
-          <View style={[styles.scoreBar, { backgroundColor: colors.muted }]}>
-            <View
-              style={[
-                styles.scoreFill,
-                { width: `${score}%` as "100%", backgroundColor: score >= 80 ? colors.success : colors.primary },
-              ]}
+        )}
+      </View>
+
+      {isEmployer ? (
+        <>
+          <View style={styles.statsRow}>
+            <StatCard value={postedJobs.length} label="Posted" icon="add-circle-outline" colors={colors} />
+            <StatCard
+              value={postedJobs.reduce((s, j) => s + j.applicants, 0)}
+              label="Applicants"
+              icon="people-outline"
+              colors={colors}
+            />
+            <StatCard
+              value={postedJobs.filter((j) => j.isUrgent).length}
+              label="Urgent"
+              icon="flash-outline"
+              colors={colors}
             />
           </View>
-          <Text style={[styles.scoreHint, { color: colors.mutedForeground }]}>
-            Add skills & education to improve your profile
+
+          <TouchableOpacity
+            style={[styles.postJobBtn, { backgroundColor: colors.primary }]}
+            onPress={() => router.push("/post-job")}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="add-circle-outline" size={22} color="#fff" />
+            <Text style={styles.postJobBtnText}>Post a New Job</Text>
+          </TouchableOpacity>
+
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+            My Job Listings
           </Text>
-        </View>
-      </View>
 
-      <View style={styles.statsRow}>
-        <StatCard value={appliedJobIds.length} label="Applied" icon="paper-plane-outline" colors={colors} />
-        <StatCard value={savedJobIds.length} label="Saved" icon="bookmark-outline" colors={colors} />
-        <StatCard value={JOBS.filter((j) => j.isFreshersOk).length} label="Matches" icon="star-outline" colors={colors} />
-      </View>
+          {postedJobs.length === 0 ? (
+            <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Ionicons name="briefcase-outline" size={40} color={colors.mutedForeground} />
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No jobs posted yet</Text>
+              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+                Tap "Post a New Job" above to find your next hire
+              </Text>
+            </View>
+          ) : (
+            <View style={[styles.postedList, { borderColor: colors.border }]}>
+              {postedJobs.map((job, idx) => (
+                <View
+                  key={job.id}
+                  style={[
+                    styles.postedRow,
+                    { borderColor: colors.border },
+                    idx < postedJobs.length - 1 && { borderBottomWidth: 1 },
+                  ]}
+                >
+                  <View
+                    style={[styles.postedLogo, { backgroundColor: job.logoColor + "22" }]}
+                  >
+                    <Text style={[styles.postedLogoText, { color: job.logoColor }]}>
+                      {job.logoInitials}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.postedTitle, { color: colors.foreground }]} numberOfLines={1}>
+                      {job.title}
+                    </Text>
+                    <Text style={[styles.postedMeta, { color: colors.mutedForeground }]}>
+                      {job.location} · {job.salary}
+                    </Text>
+                    <View style={styles.postedBadges}>
+                      {job.isUrgent && (
+                        <View style={[styles.urgentBadge, { backgroundColor: colors.urgent + "18" }]}>
+                          <Text style={[styles.urgentText, { color: colors.urgent }]}>Urgent</Text>
+                        </View>
+                      )}
+                      <Text style={[styles.postedTime, { color: colors.mutedForeground }]}>
+                        {job.postedTime}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteJob(job.id, job.title)}
+                    style={styles.deleteBtn}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="trash-outline" size={18} color={colors.destructive} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+        </>
+      ) : (
+        <>
+          <View style={styles.statsRow}>
+            <StatCard value={appliedJobIds.length} label="Applied" icon="paper-plane-outline" colors={colors} />
+            <StatCard value={savedJobIds.length} label="Saved" icon="bookmark-outline" colors={colors} />
+            <StatCard value={12} label="Matches" icon="star-outline" colors={colors} />
+          </View>
 
-      <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Profile Details</Text>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Profile Details</Text>
 
-      <View style={[styles.detailsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <DetailRow icon="location-outline" label="Preferred Location" value={user.location} colors={colors} />
-        <DetailRow icon="school-outline" label="Education" value={user.education} colors={colors} />
-        <DetailRow icon="briefcase-outline" label="Experience" value={user.experience} colors={colors} />
-        <DetailRow icon="code-slash-outline" label="Skills" value={user.skills.length > 0 ? user.skills.join(", ") : "Add your skills"} colors={colors} last />
-      </View>
+          <View style={[styles.detailsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <DetailRow icon="location-outline" label="Preferred Location" value={user.location} colors={colors} />
+            <DetailRow icon="school-outline" label="Education" value={user.education} colors={colors} />
+            <DetailRow icon="briefcase-outline" label="Experience" value={user.experience} colors={colors} />
+            <DetailRow
+              icon="code-slash-outline"
+              label="Skills"
+              value={user.skills.length > 0 ? user.skills.join(", ") : "Add your skills"}
+              colors={colors}
+              last
+            />
+          </View>
+        </>
+      )}
 
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Settings</Text>
 
@@ -291,7 +404,15 @@ function getStyles(colors: ReturnType<typeof useColors>) {
     avatarText: { fontSize: 28, fontFamily: "Inter_700Bold" },
     profileName: { fontSize: 20, fontFamily: "Inter_700Bold", marginBottom: 4 },
     profilePhone: { fontSize: 13, fontFamily: "Inter_400Regular", marginBottom: 8 },
-    rolePill: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20, marginBottom: 16 },
+    rolePill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      paddingHorizontal: 14,
+      paddingVertical: 5,
+      borderRadius: 20,
+      marginBottom: 16,
+    },
     roleText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
     scoreSection: { width: "100%" },
     scoreHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6 },
@@ -300,8 +421,8 @@ function getStyles(colors: ReturnType<typeof useColors>) {
     scoreBar: { height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 6 },
     scoreFill: { height: "100%", borderRadius: 3 },
     scoreHint: { fontSize: 11, fontFamily: "Inter_400Regular" },
-    statsRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
-    sectionTitle: { fontSize: 17, fontFamily: "Inter_700Bold", marginBottom: 10 },
+    statsRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+    sectionTitle: { fontSize: 17, fontFamily: "Inter_700Bold", marginBottom: 10, marginTop: 4 },
     detailsCard: { borderRadius: 16, paddingHorizontal: 16, marginBottom: 20, borderWidth: 1 },
     menuCard: { borderRadius: 16, paddingHorizontal: 16, marginBottom: 20, borderWidth: 1 },
     logoutBtn: {
@@ -315,5 +436,36 @@ function getStyles(colors: ReturnType<typeof useColors>) {
       marginBottom: 20,
     },
     logoutText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+    postJobBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+      paddingVertical: 16,
+      borderRadius: 16,
+      marginBottom: 20,
+    },
+    postJobBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
+    emptyCard: {
+      borderRadius: 16,
+      borderWidth: 1,
+      alignItems: "center",
+      paddingVertical: 36,
+      gap: 10,
+      marginBottom: 20,
+    },
+    emptyTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+    emptyText: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 24 },
+    postedList: { borderRadius: 16, borderWidth: 1, backgroundColor: colors.card, marginBottom: 20, overflow: "hidden" },
+    postedRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 14, paddingVertical: 14 },
+    postedLogo: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+    postedLogoText: { fontSize: 14, fontFamily: "Inter_700Bold" },
+    postedTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold", marginBottom: 2 },
+    postedMeta: { fontSize: 12, fontFamily: "Inter_400Regular", marginBottom: 4 },
+    postedBadges: { flexDirection: "row", alignItems: "center", gap: 8 },
+    urgentBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+    urgentText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
+    postedTime: { fontSize: 11, fontFamily: "Inter_400Regular" },
+    deleteBtn: { padding: 4 },
   });
 }

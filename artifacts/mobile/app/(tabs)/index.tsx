@@ -35,17 +35,18 @@ function getGreeting() {
 export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { user, selectedLocality, setSelectedLocality } = useApp();
+  const { user, selectedLocality, setSelectedLocality, postedJobs } = useApp();
   const [search, setSearch] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
   const isWeb = Platform.OS === "web";
 
-  const urgentJobs = JOBS.filter((j) => j.isUrgent);
+  const allJobs = [...postedJobs, ...JOBS];
+  const urgentJobs = allJobs.filter((j) => j.isUrgent);
   const featuredJobs = JOBS.filter((j) => j.isVerified && j.isTrusted).slice(0, 5);
-  const recentJobs = [...JOBS].sort((a, b) => a.postedTime.localeCompare(b.postedTime)).slice(0, 8);
+  const recentJobs = [...postedJobs, ...JOBS].sort((a, b) => a.postedTime.localeCompare(b.postedTime)).slice(0, 8);
 
-  const filteredJobs = JOBS.filter((job) => {
+  const filteredJobs = allJobs.filter((job) => {
     const matchSearch =
       !search ||
       job.title.toLowerCase().includes(search.toLowerCase()) ||

@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { JobCard } from "@/components/JobCard";
 import { SkeletonCard } from "@/components/SkeletonCard";
+import { useApp } from "@/context/AppContext";
 import { CATEGORIES, JOBS, type JobCategory } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
 
@@ -23,13 +24,16 @@ export default function JobsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
+  const { postedJobs } = useApp();
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<JobCategory | "All">("All");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [showFilters, setShowFilters] = useState(false);
 
-  const filtered = JOBS.filter((job) => {
+  const allJobs = [...postedJobs, ...JOBS];
+
+  const filtered = allJobs.filter((job) => {
     const matchSearch =
       !search ||
       job.title.toLowerCase().includes(search.toLowerCase()) ||

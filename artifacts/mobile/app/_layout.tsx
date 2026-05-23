@@ -27,6 +27,7 @@ function RootLayoutNav() {
       <Stack.Screen name="auth/index" options={{ presentation: "modal", headerShown: false }} />
       <Stack.Screen name="job/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="apply/[id]" options={{ presentation: "modal", headerShown: false }} />
+      <Stack.Screen name="post-job/index" options={{ presentation: "modal", headerShown: false }} />
     </Stack>
   );
 }
