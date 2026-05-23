@@ -6,7 +6,7 @@ import { LOCALITIES } from "@/data/jobs";
 
 export type UserRole = "seeker" | "employer" | null;
 
-interface UserProfile {
+export interface UserProfile {
   name: string;
   phone: string;
   role: UserRole;
@@ -15,6 +15,8 @@ interface UserProfile {
   skills: string[];
   experience: string;
   education: string;
+  bio: string;
+  resumeUploaded: boolean;
   profileScore: number;
 }
 
@@ -44,6 +46,7 @@ interface AppContextType {
   setSelectedLocality: (loc: string) => void;
   login: (phone: string, name: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (updates: Partial<Omit<UserProfile, "isAuthenticated" | "role" | "phone">>) => Promise<void>;
   toggleSaveJob: (jobId: string) => Promise<void>;
   applyToJob: (jobId: string) => Promise<void>;
   postJob: (draft: DraftJob) => Promise<void>;
@@ -61,8 +64,22 @@ const DEFAULT_USER: UserProfile = {
   skills: [],
   experience: "Fresher",
   education: "B.A.",
+  bio: "",
+  resumeUploaded: false,
   profileScore: 40,
 };
+
+function computeScore(u: UserProfile): number {
+  let score = 0;
+  if (u.name) score += 20;
+  if (u.phone) score += 15;
+  if (u.skills.length > 0) score += 20;
+  if (u.education && u.education !== "B.A.") score += 10;
+  if (u.experience && u.experience !== "Fresher") score += 10;
+  if (u.bio && u.bio.length > 10) score += 10;
+  if (u.resumeUploaded) score += 15;
+  return Math.min(score, 100);
+}
 
 const LOCALITY_COORDS: Record<string, { lat: number; lng: number }> = {
   Rohini: { lat: 28.748, lng: 77.12 },
@@ -111,8 +128,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       phone,
       role,
       isAuthenticated: true,
-      profileScore: 55,
+      profileScore: 35,
     };
+    newUser.profileScore = computeScore(newUser);
     setUser(newUser);
     await AsyncStorage.setItem("@rozgaar_user", JSON.stringify(newUser));
   }
@@ -120,6 +138,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   async function logout() {
     setUser(DEFAULT_USER);
     await AsyncStorage.removeItem("@rozgaar_user");
+  }
+
+  async function updateProfile(updates: Partial<Omit<UserProfile, "isAuthenticated" | "role" | "phone">>) {
+    const updated: UserProfile = { ...user, ...updates };
+    updated.profileScore = computeScore(updated);
+    setUser(updated);
+    await AsyncStorage.setItem("@rozgaar_user", JSON.stringify(updated));
   }
 
   async function toggleSaveJob(jobId: string) {
@@ -147,8 +172,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .join("")
       .toUpperCase()
       .slice(0, 2);
-    const colors = ["#2563EB", "#7C3AED", "#059669", "#DC2626", "#D97706", "#0891B2"];
-    const logoColor = colors[Math.floor(Math.random() * colors.length)] ?? "#2563EB";
+    const logoColors = ["#2563EB", "#7C3AED", "#059669", "#DC2626", "#D97706", "#0891B2"];
+    const logoColor = logoColors[Math.floor(Math.random() * logoColors.length)] ?? "#2563EB";
 
     const newJob: Job = {
       id: `posted_${Date.now()}_${Math.floor(Math.random() * 9999)}`,
@@ -205,6 +230,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setSelectedLocality,
         login,
         logout,
+        updateProfile,
         toggleSaveJob,
         applyToJob,
         postJob,
