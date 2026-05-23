@@ -23,15 +23,19 @@ export default function JobDetailScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { isJobSaved, toggleSaveJob, isJobApplied, user } = useApp();
+  const { isJobSaved, toggleSaveJob, isJobApplied, user, postedJobs } = useApp();
   const isWeb = Platform.OS === "web";
 
-  const job = JOBS.find((j) => j.id === id);
+  const allJobs = [...postedJobs, ...JOBS];
+  const job = allJobs.find((j) => j.id === id);
 
   if (!job) {
     return (
-      <View style={[styles.notFound, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.foreground }}>Job not found</Text>
+      <View style={[styles.notFound, { backgroundColor: "#EEF2FF" }]}>
+        <Ionicons name="briefcase-outline" size={48} color="#94A3B8" />
+        <Text style={{ color: "#64748B", fontFamily: "Inter_400Regular", marginTop: 12 }}>
+          Job not found
+        </Text>
       </View>
     );
   }
@@ -61,178 +65,132 @@ export default function JobDetailScreen() {
   }
 
   return (
-    <View style={[{ flex: 1, backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: isWeb ? 67 : insets.top + 8,
-            backgroundColor: colors.background,
-            borderBottomColor: colors.border,
-          },
-        ]}
-      >
+    <View style={styles.screen}>
+      <View style={[styles.header, { paddingTop: isWeb ? 67 : insets.top + 8 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={colors.foreground} />
+          <Ionicons name="arrow-back" size={22} color="#0F172A" />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]} numberOfLines={1}>
-          Job Details
-        </Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>Job Details</Text>
         <TouchableOpacity onPress={onSave} style={styles.saveHeaderBtn}>
           <Ionicons
             name={saved ? "bookmark" : "bookmark-outline"}
-            size={24}
-            color={saved ? colors.primary : colors.foreground}
+            size={22}
+            color={saved ? "#2563EB" : "#64748B"}
           />
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: isWeb ? 120 : 120 },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: isWeb ? 130 : 130 }]}
         showsVerticalScrollIndicator={false}
       >
         {job.isUrgent && (
-          <LinearGradient
-            colors={[colors.urgent, colors.urgent + "CC"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.urgentBar}
-          >
+          <View style={styles.urgentBar}>
             <Ionicons name="flash" size={14} color="#fff" />
             <Text style={styles.urgentBarText}>URGENT HIRING — Apply Today!</Text>
-          </LinearGradient>
+          </View>
         )}
 
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={styles.card}>
           <View style={styles.companyRow}>
-            <View style={[styles.logo, { backgroundColor: job.logoColor + "22" }]}>
+            <View style={[styles.logo, { backgroundColor: job.logoColor + "18" }]}>
               <Text style={[styles.logoText, { color: job.logoColor }]}>{job.logoInitials}</Text>
             </View>
             <View style={styles.companyInfo}>
-              <Text style={[styles.jobTitle, { color: colors.foreground }]}>{job.title}</Text>
-              <Text style={[styles.company, { color: colors.mutedForeground }]}>{job.company}</Text>
+              <Text style={styles.jobTitle}>{job.title}</Text>
+              <Text style={styles.company}>{job.company}</Text>
               <View style={styles.badges}>
                 {job.isVerified && (
-                  <View style={[styles.badge, { backgroundColor: colors.successFg }]}>
-                    <Ionicons name="checkmark-circle" size={12} color={colors.success} />
-                    <Text style={[styles.badgeText, { color: colors.success }]}>Verified</Text>
+                  <View style={[styles.badge, { backgroundColor: "#D1FAE5" }]}>
+                    <Ionicons name="checkmark-circle" size={12} color="#059669" />
+                    <Text style={[styles.badgeText, { color: "#059669" }]}>Verified</Text>
                   </View>
                 )}
                 {job.isTrusted && (
-                  <View style={[styles.badge, { backgroundColor: colors.accent }]}>
-                    <Ionicons name="shield-checkmark" size={12} color={colors.primary} />
-                    <Text style={[styles.badgeText, { color: colors.primary }]}>Trusted</Text>
+                  <View style={[styles.badge, { backgroundColor: "#DBEAFE" }]}>
+                    <Ionicons name="shield-checkmark" size={12} color="#2563EB" />
+                    <Text style={[styles.badgeText, { color: "#2563EB" }]}>Trusted</Text>
                   </View>
                 )}
               </View>
             </View>
           </View>
 
-          <View style={[styles.salaryBlock, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-            <Ionicons name="cash" size={20} color={colors.success} />
+          <View style={styles.salaryBlock}>
+            <Ionicons name="cash" size={22} color="#059669" />
             <View>
-              <Text style={[styles.salaryLabel, { color: colors.mutedForeground }]}>Monthly Salary</Text>
-              <Text style={[styles.salaryValue, { color: colors.success }]}>{job.salary}</Text>
-              {job.isNegotiable && (
-                <Text style={[styles.negotiable, { color: colors.mutedForeground }]}>Negotiable</Text>
-              )}
+              <Text style={styles.salaryLabel}>Monthly Salary</Text>
+              <Text style={styles.salaryValue}>{job.salary}</Text>
+              {job.isNegotiable && <Text style={styles.negotiable}>Negotiable</Text>}
             </View>
           </View>
 
           <View style={styles.grid}>
-            <GridItem icon="location-outline" label="Location" value={job.location} colors={colors} />
-            <GridItem icon="navigate-outline" label="Distance" value={`${job.distanceKm} km away`} colors={colors} />
-            <GridItem icon="briefcase-outline" label="Experience" value={job.experience} colors={colors} />
-            <GridItem icon="people-outline" label="Job Type" value={job.jobType} colors={colors} />
-            <GridItem icon="time-outline" label="Posted" value={job.postedTime} colors={colors} />
-            <GridItem icon="person-outline" label="Applicants" value={`${job.applicants} applied`} colors={colors} />
+            <GridItem icon="location-outline" label="Location" value={job.location} />
+            <GridItem icon="navigate-outline" label="Distance" value={`${job.distanceKm} km away`} />
+            <GridItem icon="briefcase-outline" label="Experience" value={job.experience} />
+            <GridItem icon="people-outline" label="Job Type" value={job.jobType} />
+            <GridItem icon="time-outline" label="Posted" value={job.postedTime} />
+            <GridItem icon="person-outline" label="Applicants" value={`${job.applicants} applied`} />
           </View>
 
           {job.isFreshersOk && (
-            <View style={[styles.fresherBanner, { backgroundColor: colors.accent }]}>
-              <Ionicons name="star" size={16} color={colors.primary} />
-              <Text style={[styles.fresherText, { color: colors.primary }]}>
-                Freshers are welcome to apply!
-              </Text>
+            <View style={styles.fresherBanner}>
+              <Ionicons name="star" size={16} color="#2563EB" />
+              <Text style={styles.fresherText}>Freshers are welcome to apply!</Text>
             </View>
           )}
         </View>
 
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>About the Role</Text>
-          <Text style={[styles.description, { color: colors.mutedForeground }]}>{job.description}</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>About the Role</Text>
+          <Text style={styles.description}>{job.description}</Text>
         </View>
 
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Requirements</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Requirements</Text>
           {job.requirements.map((req, i) => (
             <View key={i} style={styles.reqRow}>
-              <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-              <Text style={[styles.reqText, { color: colors.foreground }]}>{req}</Text>
+              <Ionicons name="checkmark-circle" size={16} color="#059669" />
+              <Text style={styles.reqText}>{req}</Text>
             </View>
           ))}
         </View>
 
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Report This Job</Text>
-          <TouchableOpacity style={[styles.reportBtn, { borderColor: colors.border }]}>
-            <Ionicons name="flag-outline" size={16} color={colors.mutedForeground} />
-            <Text style={[styles.reportText, { color: colors.mutedForeground }]}>
-              Report fake or misleading job
-            </Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Report This Job</Text>
+          <TouchableOpacity style={styles.reportBtn}>
+            <Ionicons name="flag-outline" size={16} color="#94A3B8" />
+            <Text style={styles.reportText}>Report fake or misleading job</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      <View
-        style={[
-          styles.footer,
-          {
-            backgroundColor: colors.card,
-            borderTopColor: colors.border,
-            paddingBottom: isWeb ? 24 : insets.bottom + 12,
-          },
-        ]}
-      >
-        <TouchableOpacity style={styles.waBtn} onPress={onWhatsApp}>
+      <View style={[styles.footer, { paddingBottom: isWeb ? 24 : insets.bottom + 12 }]}>
+        <TouchableOpacity style={styles.waBtn} onPress={onWhatsApp} activeOpacity={0.8}>
           <MaterialCommunityIcons name="whatsapp" size={22} color="#25D366" />
           <Text style={styles.waBtnText}>WhatsApp</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.applyBtn, { backgroundColor: applied ? colors.success : colors.primary }]}
+          style={[styles.applyBtn, applied && { backgroundColor: "#059669" }]}
           onPress={onApply}
           disabled={applied}
+          activeOpacity={0.85}
         >
-          <Text style={styles.applyBtnText}>
-            {applied ? "Application Sent" : "Apply Now"}
-          </Text>
-          {!applied && <Ionicons name="arrow-forward" size={18} color="#fff" />}
-          {applied && <Ionicons name="checkmark-circle" size={18} color="#fff" />}
+          <Text style={styles.applyBtnText}>{applied ? "Applied!" : "Apply Now"}</Text>
+          <Ionicons name={applied ? "checkmark-circle" : "arrow-forward"} size={18} color="#fff" />
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
-function GridItem({
-  icon,
-  label,
-  value,
-  colors,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-  colors: ReturnType<typeof useColors>;
-}) {
+function GridItem({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
-    <View style={[gridStyles.item, { backgroundColor: colors.muted }]}>
-      <Ionicons name={icon as "location-outline"} size={16} color={colors.primary} />
-      <Text style={[gridStyles.label, { color: colors.mutedForeground }]}>{label}</Text>
-      <Text style={[gridStyles.value, { color: colors.foreground }]}>{value}</Text>
+    <View style={gridStyles.item}>
+      <Ionicons name={icon as "location-outline"} size={15} color="#2563EB" />
+      <Text style={gridStyles.label}>{label}</Text>
+      <Text style={gridStyles.value}>{value}</Text>
     </View>
   );
 }
@@ -241,60 +199,72 @@ const gridStyles = StyleSheet.create({
   item: {
     width: "48%",
     padding: 12,
-    borderRadius: 12,
-    gap: 4,
+    borderRadius: 14,
+    gap: 3,
     marginBottom: 8,
+    backgroundColor: "#F8FAFF",
   },
-  label: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  value: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  label: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#64748B" },
+  value: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#0F172A" },
 });
 
 const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: "#EEF2FF" },
   notFound: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     paddingBottom: 12,
+    backgroundColor: "#ffffff",
     borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    shadowColor: "#3B5BDB",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  backBtn: { padding: 4, marginRight: 8 },
-  headerTitle: { flex: 1, fontSize: 17, fontFamily: "Inter_600SemiBold" },
-  saveHeaderBtn: { padding: 4 },
-  scroll: { padding: 16, gap: 12 },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  headerTitle: { flex: 1, fontSize: 17, fontFamily: "Inter_600SemiBold", color: "#0F172A" },
+  saveHeaderBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  scroll: { padding: 16, gap: 14 },
   urgentBar: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginBottom: 0,
+    paddingVertical: 11,
+    borderRadius: 14,
+    backgroundColor: "#DC2626",
+    marginBottom: 2,
   },
   urgentBarText: { color: "#fff", fontFamily: "Inter_700Bold", fontSize: 13 },
-  card: { borderRadius: 20, padding: 18, borderWidth: 1 },
+  card: { borderRadius: 24, padding: 18, backgroundColor: "#ffffff", shadowColor: "#3B5BDB", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
   companyRow: { flexDirection: "row", gap: 14, marginBottom: 16 },
-  logo: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  logo: { width: 56, height: 56, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   logoText: { fontSize: 15, fontFamily: "Inter_700Bold" },
   companyInfo: { flex: 1 },
-  jobTitle: { fontSize: 18, fontFamily: "Inter_700Bold", marginBottom: 2 },
-  company: { fontSize: 14, fontFamily: "Inter_400Regular", marginBottom: 6 },
+  jobTitle: { fontSize: 18, fontFamily: "Inter_700Bold", color: "#0F172A", marginBottom: 2 },
+  company: { fontSize: 14, fontFamily: "Inter_400Regular", color: "#64748B", marginBottom: 6 },
   badges: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
-  badge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 20,
-  },
-  badgeText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  badge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
+  badgeText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
   salaryBlock: {
     flexDirection: "row",
     alignItems: "center",
@@ -302,63 +272,37 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 14,
     marginBottom: 16,
-    borderWidth: 1,
+    backgroundColor: "#F0FDF4",
   },
-  salaryLabel: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  salaryValue: { fontSize: 17, fontFamily: "Inter_700Bold" },
-  negotiable: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  salaryLabel: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#64748B" },
+  salaryValue: { fontSize: 17, fontFamily: "Inter_700Bold", color: "#059669" },
+  negotiable: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#64748B" },
   grid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
-  fresherBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
-    borderRadius: 12,
-    marginTop: 8,
-  },
-  fresherText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  section: { borderRadius: 20, padding: 18, borderWidth: 1 },
-  sectionTitle: { fontSize: 16, fontFamily: "Inter_700Bold", marginBottom: 12 },
-  description: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 },
+  fresherBanner: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 12, marginTop: 8, backgroundColor: "#DBEAFE" },
+  fresherText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#2563EB" },
+  section: { borderRadius: 24, padding: 18, backgroundColor: "#ffffff", shadowColor: "#3B5BDB", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12, elevation: 2 },
+  sectionTitle: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#0F172A", marginBottom: 12 },
+  description: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22, color: "#475569" },
   reqRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 8 },
-  reqText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20 },
-  reportBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  reportText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  reqText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20, color: "#0F172A" },
+  reportBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: "#E2E8F0" },
+  reportText: { fontSize: 13, fontFamily: "Inter_400Regular", color: "#94A3B8" },
   footer: {
     flexDirection: "row",
     gap: 12,
     paddingHorizontal: 16,
     paddingTop: 14,
+    backgroundColor: "#ffffff",
     borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+    shadowColor: "#3B5BDB",
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  waBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderRadius: 16,
-    backgroundColor: "#25D36618",
-    borderWidth: 1,
-    borderColor: "#25D36640",
-  },
-  waBtnText: { color: "#25D366", fontFamily: "Inter_600SemiBold", fontSize: 14 },
-  applyBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 16,
-  },
+  waBtn: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 16, backgroundColor: "#F0FDF4", borderWidth: 1, borderColor: "#BBF7D0" },
+  waBtnText: { color: "#16A34A", fontFamily: "Inter_600SemiBold", fontSize: 14 },
+  applyBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 16, backgroundColor: "#2563EB" },
   applyBtnText: { color: "#fff", fontFamily: "Inter_700Bold", fontSize: 15 },
 });

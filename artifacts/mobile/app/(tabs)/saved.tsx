@@ -20,29 +20,23 @@ export default function SavedScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { savedJobIds, appliedJobIds, user } = useApp();
+  const { savedJobIds, appliedJobIds, user, postedJobs } = useApp();
   const isWeb = Platform.OS === "web";
 
-  const savedJobs = JOBS.filter((j) => savedJobIds.includes(j.id));
-  const appliedJobs = JOBS.filter((j) => appliedJobIds.includes(j.id));
-
-  const styles = getStyles(colors);
+  const allJobs = [...postedJobs, ...JOBS];
+  const savedJobs = allJobs.filter((j) => savedJobIds.includes(j.id));
+  const appliedJobs = allJobs.filter((j) => appliedJobIds.includes(j.id));
 
   if (!user.isAuthenticated) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: isWeb ? 67 : insets.top }]}>
+      <View style={[styles.container, { paddingTop: isWeb ? 67 : insets.top }]}>
         <View style={styles.guestCenter}>
-          <Ionicons name="bookmark" size={60} color={colors.mutedForeground} />
-          <Text style={[styles.guestTitle, { color: colors.foreground }]}>
-            Save Jobs You Like
-          </Text>
-          <Text style={[styles.guestText, { color: colors.mutedForeground }]}>
-            Sign in to save jobs and track your applications
-          </Text>
-          <TouchableOpacity
-            style={[styles.signInBtn, { backgroundColor: colors.primary }]}
-            onPress={() => router.push("/auth")}
-          >
+          <View style={styles.guestIconWrap}>
+            <Ionicons name="bookmark" size={40} color="#2563EB" />
+          </View>
+          <Text style={styles.guestTitle}>Save Jobs You Like</Text>
+          <Text style={styles.guestText}>Sign in to save jobs and track your applications</Text>
+          <TouchableOpacity style={styles.signInBtn} onPress={() => router.push("/auth")}>
             <Text style={styles.signInBtnText}>Sign In</Text>
           </TouchableOpacity>
         </View>
@@ -51,70 +45,52 @@ export default function SavedScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: isWeb ? 67 : insets.top + 8,
-            backgroundColor: colors.background,
-            borderBottomColor: colors.border,
-          },
-        ]}
-      >
-        <Text style={[styles.title, { color: colors.foreground }]}>Saved & Applied</Text>
+    <View style={styles.container}>
+      <View style={[styles.header, { paddingTop: isWeb ? 67 : insets.top + 8 }]}>
+        <Text style={styles.title}>Saved & Applied</Text>
       </View>
 
       <FlatList
-        data={[...savedJobs]}
+        data={savedJobs}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.list,
-          { paddingBottom: isWeb ? 100 : 90 },
-        ]}
+        contentContainerStyle={[styles.list, { paddingBottom: isWeb ? 100 : 90 }]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <>
             {appliedJobs.length > 0 && (
               <View style={styles.appliedSection}>
                 <View style={styles.sectionHeader}>
-                  <Ionicons name="checkmark-circle" size={18} color={colors.success} />
-                  <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                    Applied Jobs ({appliedJobs.length})
-                  </Text>
+                  <View style={styles.sectionIconWrap}>
+                    <Ionicons name="checkmark-circle" size={16} color="#059669" />
+                  </View>
+                  <Text style={styles.sectionTitle}>Applied Jobs ({appliedJobs.length})</Text>
                 </View>
                 {appliedJobs.map((job) => (
-                  <View key={job.id} style={[styles.appliedBadge]}>
-                    <View style={[styles.appliedIndicator, { backgroundColor: colors.successFg }]}>
-                      <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-                      <Text style={[styles.appliedText, { color: colors.success }]}>
-                        Applied
-                      </Text>
+                  <View key={job.id}>
+                    <View style={styles.appliedIndicator}>
+                      <Ionicons name="checkmark-circle" size={13} color="#059669" />
+                      <Text style={styles.appliedText}>Applied</Text>
                     </View>
                     <JobCard job={job} />
                   </View>
                 ))}
-                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                <View style={styles.divider} />
               </View>
             )}
 
             <View style={styles.sectionHeader}>
-              <Ionicons name="bookmark" size={18} color={colors.primary} />
-              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                Saved Jobs ({savedJobs.length})
-              </Text>
+              <View style={[styles.sectionIconWrap, { backgroundColor: "#DBEAFE" }]}>
+                <Ionicons name="bookmark" size={16} color="#2563EB" />
+              </View>
+              <Text style={styles.sectionTitle}>Saved Jobs ({savedJobs.length})</Text>
             </View>
           </>
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="bookmark-outline" size={48} color={colors.mutedForeground} />
-            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-              No saved jobs yet
-            </Text>
-            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-              Tap the bookmark on any job to save it here
-            </Text>
+            <Ionicons name="bookmark-outline" size={48} color="#94A3B8" />
+            <Text style={styles.emptyTitle}>No saved jobs yet</Text>
+            <Text style={styles.emptyText}>Tap the bookmark on any job to save it here</Text>
           </View>
         }
         renderItem={({ item }) => <JobCard job={item} />}
@@ -123,35 +99,60 @@ export default function SavedScreen() {
   );
 }
 
-function getStyles(colors: ReturnType<typeof useColors>) {
-  return StyleSheet.create({
-    container: { flex: 1 },
-    guestCenter: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
-    guestTitle: { fontSize: 22, fontFamily: "Inter_700Bold", textAlign: "center" },
-    guestText: { fontSize: 15, fontFamily: "Inter_400Regular", textAlign: "center" },
-    signInBtn: { paddingHorizontal: 32, paddingVertical: 14, borderRadius: 16, marginTop: 8 },
-    signInBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
-    header: { paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1 },
-    title: { fontSize: 24, fontFamily: "Inter_700Bold" },
-    list: { paddingHorizontal: 16, paddingTop: 16 },
-    appliedSection: { marginBottom: 8 },
-    sectionHeader: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
-    sectionTitle: { fontSize: 16, fontFamily: "Inter_700Bold" },
-    appliedBadge: { marginBottom: -4 },
-    appliedIndicator: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      alignSelf: "flex-end",
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 20,
-      marginBottom: 4,
-    },
-    appliedText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
-    divider: { height: 1, marginVertical: 16 },
-    empty: { alignItems: "center", paddingVertical: 60, gap: 8 },
-    emptyTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
-    emptyText: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center" },
-  });
-}
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#EEF2FF" },
+  guestCenter: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 14 },
+  guestIconWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: "#DBEAFE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  guestTitle: { fontSize: 22, fontFamily: "Inter_700Bold", color: "#0F172A", textAlign: "center" },
+  guestText: { fontSize: 15, fontFamily: "Inter_400Regular", color: "#64748B", textAlign: "center" },
+  signInBtn: { paddingHorizontal: 36, paddingVertical: 14, borderRadius: 16, marginTop: 4, backgroundColor: "#2563EB" },
+  signInBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  header: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    backgroundColor: "#ffffff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    shadowColor: "#3B5BDB",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  title: { fontSize: 24, fontFamily: "Inter_700Bold", color: "#0F172A" },
+  list: { paddingHorizontal: 16, paddingTop: 16 },
+  appliedSection: { marginBottom: 4 },
+  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
+  sectionIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: "#D1FAE5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionTitle: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#0F172A" },
+  appliedIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "flex-end",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    backgroundColor: "#D1FAE5",
+    marginBottom: 4,
+  },
+  appliedText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#059669" },
+  divider: { height: 1, backgroundColor: "#E2E8F0", marginVertical: 16 },
+  empty: { alignItems: "center", paddingVertical: 60, gap: 8 },
+  emptyTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold", color: "#0F172A" },
+  emptyText: { fontSize: 14, fontFamily: "Inter_400Regular", color: "#64748B", textAlign: "center" },
+});

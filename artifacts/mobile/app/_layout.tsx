@@ -12,6 +12,7 @@ import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider } from "@/context/AppContext";
@@ -22,13 +23,16 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="auth/index" options={{ presentation: "modal", headerShown: false }} />
-      <Stack.Screen name="job/[id]" options={{ headerShown: false }} />
-      <Stack.Screen name="apply/[id]" options={{ presentation: "modal", headerShown: false }} />
-      <Stack.Screen name="post-job/index" options={{ presentation: "modal", headerShown: false }} />
-    </Stack>
+    <>
+      <StatusBar style="dark" backgroundColor="#EEF2FF" translucent={false} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/index" options={{ presentation: "modal", headerShown: false }} />
+        <Stack.Screen name="job/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="apply/[id]" options={{ presentation: "modal", headerShown: false }} />
+        <Stack.Screen name="post-job/index" options={{ presentation: "modal", headerShown: false }} />
+      </Stack>
+    </>
   );
 }
 

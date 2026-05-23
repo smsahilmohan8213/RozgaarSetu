@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { JobCard } from "@/components/JobCard";
-import { SkeletonCard } from "@/components/SkeletonCard";
+import { useApp } from "@/context/AppContext";
 import { JOBS } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
 
@@ -39,6 +39,7 @@ export default function NearbyScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
+  const { postedJobs } = useApp();
 
   const [locationGranted, setLocationGranted] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -49,10 +50,12 @@ export default function NearbyScreen() {
   const effectiveLat = userLat ?? USER_LAT;
   const effectiveLng = userLng ?? USER_LNG;
 
-  const nearbyJobs = JOBS.map((job) => ({
-    ...job,
-    computedDistance: haversineKm(effectiveLat, effectiveLng, job.lat, job.lng),
-  }))
+  const allJobs = [...postedJobs, ...JOBS];
+  const nearbyJobs = allJobs
+    .map((job) => ({
+      ...job,
+      computedDistance: haversineKm(effectiveLat, effectiveLng, job.lat, job.lng),
+    }))
     .filter((j) => j.computedDistance <= radius)
     .sort((a, b) => a.computedDistance - b.computedDistance);
 
@@ -91,29 +94,17 @@ export default function NearbyScreen() {
     }
   }
 
-  const styles = getStyles(colors);
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: isWeb ? 67 : insets.top + 8,
-            backgroundColor: colors.background,
-            borderBottomColor: colors.border,
-          },
-        ]}
-      >
-        <Text style={[styles.title, { color: colors.foreground }]}>
-          Nearby Jobs
-        </Text>
+    <View style={styles.container}>
+      <View style={[styles.header, { paddingTop: isWeb ? 67 : insets.top + 8 }]}>
+        <Text style={styles.title}>Nearby Jobs</Text>
 
         {!locationGranted ? (
           <TouchableOpacity
-            style={[styles.locationBtn, { backgroundColor: colors.primary }]}
+            style={styles.locationBtn}
             onPress={requestLocation}
             disabled={locationLoading}
+            activeOpacity={0.85}
           >
             {locationLoading ? (
               <ActivityIndicator color="#fff" size="small" />
@@ -126,34 +117,25 @@ export default function NearbyScreen() {
           </TouchableOpacity>
         ) : (
           <View style={styles.locationActive}>
-            <Ionicons name="location" size={16} color={colors.success} />
-            <Text style={[styles.locationActiveText, { color: colors.success }]}>
+            <View style={styles.locationDot} />
+            <Text style={styles.locationActiveText}>
               {userLat ? "Using your location" : "Using Rohini, Delhi"}
             </Text>
           </View>
         )}
 
         <View style={styles.radiusRow}>
-          <Text style={[styles.radiusLabel, { color: colors.mutedForeground }]}>
-            Radius:
-          </Text>
+          <Text style={styles.radiusLabel}>Radius:</Text>
           {([1, 2, 5, 10] as RadiusOption[]).map((r) => (
             <TouchableOpacity
               key={r}
               style={[
                 styles.radiusChip,
-                {
-                  backgroundColor: radius === r ? colors.primary : colors.muted,
-                },
+                { backgroundColor: radius === r ? "#2563EB" : "#EEF2FF" },
               ]}
               onPress={() => setRadius(r)}
             >
-              <Text
-                style={[
-                  styles.radiusText,
-                  { color: radius === r ? "#fff" : colors.foreground },
-                ]}
-              >
+              <Text style={[styles.radiusText, { color: radius === r ? "#fff" : "#0F172A" }]}>
                 {r} km
               </Text>
             </TouchableOpacity>
@@ -164,20 +146,15 @@ export default function NearbyScreen() {
       <FlatList
         data={nearbyJobs}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[
-          styles.list,
-          { paddingBottom: isWeb ? 100 : 90 },
-        ]}
+        contentContainerStyle={[styles.list, { paddingBottom: isWeb ? 100 : 90 }]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.countRow}>
-            <Text style={[styles.count, { color: colors.mutedForeground }]}>
-              {nearbyJobs.length} jobs within {radius} km
-            </Text>
+            <Text style={styles.count}>{nearbyJobs.length} jobs within {radius} km</Text>
             {nearbyJobs.some((j) => j.isUrgent) && (
-              <View style={[styles.urgentPill, { backgroundColor: colors.urgentFg || "#FEE2E2" }]}>
-                <Ionicons name="flash" size={12} color={colors.urgent} />
-                <Text style={[styles.urgentPillText, { color: colors.urgent }]}>
+              <View style={styles.urgentPill}>
+                <Ionicons name="flash" size={12} color="#DC2626" />
+                <Text style={styles.urgentPillText}>
                   {nearbyJobs.filter((j) => j.isUrgent).length} urgent
                 </Text>
               </View>
@@ -186,27 +163,18 @@ export default function NearbyScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="map-outline" size={48} color={colors.mutedForeground} />
-            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-              No jobs in {radius} km
-            </Text>
-            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-              Try increasing the radius
-            </Text>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="map-outline" size={40} color="#2563EB" />
+            </View>
+            <Text style={styles.emptyTitle}>No jobs in {radius} km</Text>
+            <Text style={styles.emptyText}>Try increasing the radius above</Text>
           </View>
         }
         renderItem={({ item }) => (
           <View style={styles.cardWrapper}>
-            <View
-              style={[
-                styles.distanceBadge,
-                { backgroundColor: colors.primary + "18" },
-              ]}
-            >
-              <Ionicons name="location" size={12} color={colors.primary} />
-              <Text style={[styles.distanceText, { color: colors.primary }]}>
-                {item.computedDistance.toFixed(1)} km away
-              </Text>
+            <View style={styles.distanceBadge}>
+              <Ionicons name="navigate" size={11} color="#2563EB" />
+              <Text style={styles.distanceText}>{item.computedDistance.toFixed(1)} km away</Text>
             </View>
             <JobCard job={item} />
           </View>
@@ -216,80 +184,75 @@ export default function NearbyScreen() {
   );
 }
 
-function getStyles(colors: ReturnType<typeof useColors>) {
-  return StyleSheet.create({
-    container: { flex: 1 },
-    header: {
-      paddingHorizontal: 16,
-      paddingBottom: 12,
-      borderBottomWidth: 1,
-    },
-    title: { fontSize: 24, fontFamily: "Inter_700Bold", marginBottom: 12 },
-    locationBtn: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-      paddingVertical: 12,
-      paddingHorizontal: 20,
-      borderRadius: 14,
-      alignSelf: "flex-start",
-      marginBottom: 12,
-    },
-    locationBtnText: {
-      color: "#fff",
-      fontFamily: "Inter_600SemiBold",
-      fontSize: 14,
-    },
-    locationActive: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      marginBottom: 12,
-    },
-    locationActiveText: { fontSize: 13, fontFamily: "Inter_500Medium" },
-    radiusRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-    },
-    radiusLabel: { fontSize: 13, fontFamily: "Inter_500Medium" },
-    radiusChip: {
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 20,
-    },
-    radiusText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
-    list: { paddingHorizontal: 16, paddingTop: 12 },
-    countRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 12,
-    },
-    count: { fontSize: 13, fontFamily: "Inter_400Regular" },
-    urgentPill: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 20,
-    },
-    urgentPillText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
-    cardWrapper: { marginBottom: -4 },
-    distanceBadge: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 4,
-      alignSelf: "flex-end",
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 20,
-      marginBottom: 4,
-    },
-    distanceText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
-    empty: { alignItems: "center", paddingVertical: 80, gap: 8 },
-    emptyTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
-    emptyText: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  });
-}
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#EEF2FF" },
+  header: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    backgroundColor: "#ffffff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    shadowColor: "#3B5BDB",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  title: { fontSize: 24, fontFamily: "Inter_700Bold", color: "#0F172A", marginBottom: 12 },
+  locationBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    backgroundColor: "#2563EB",
+    alignSelf: "flex-start",
+    marginBottom: 12,
+  },
+  locationBtnText: { color: "#fff", fontFamily: "Inter_600SemiBold", fontSize: 14 },
+  locationActive: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 },
+  locationDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#059669" },
+  locationActiveText: { fontSize: 13, fontFamily: "Inter_500Medium", color: "#059669" },
+  radiusRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  radiusLabel: { fontSize: 13, fontFamily: "Inter_500Medium", color: "#64748B" },
+  radiusChip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20 },
+  radiusText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+  list: { paddingHorizontal: 16, paddingTop: 12 },
+  countRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  count: { fontSize: 13, fontFamily: "Inter_400Regular", color: "#64748B" },
+  urgentPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    backgroundColor: "#FEE2E2",
+  },
+  urgentPillText: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: "#DC2626" },
+  cardWrapper: { marginBottom: -4 },
+  distanceBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "flex-end",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    backgroundColor: "#DBEAFE",
+    marginBottom: 4,
+  },
+  distanceText: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: "#2563EB" },
+  empty: { alignItems: "center", paddingVertical: 80, gap: 10 },
+  emptyIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#DBEAFE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold", color: "#0F172A" },
+  emptyText: { fontSize: 14, fontFamily: "Inter_400Regular", color: "#64748B" },
+});
