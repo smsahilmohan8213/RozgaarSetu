@@ -495,11 +495,29 @@ export default function ProfileScreen() {
             <Text style={styles.cardTitle}>Settings</Text>
           </View>
         </View>
-        <MenuItem icon="notifications-outline" label="Job Alerts" />
+        <MenuItem icon="notifications-outline" label="Job Alerts" onPress={() => router.push("/notifications")} />
         <MenuItem icon="language-outline" label="Language: English" />
         <MenuItem icon="shield-outline" label="Privacy & Safety" />
         <MenuItem icon="help-circle-outline" label="Help & Support" last />
       </View>
+
+      {/* ── ADMIN PANEL (hidden access via special phone) ── */}
+      {user.isAuthenticated && user.phone.startsWith("000") && (
+        <TouchableOpacity
+          style={styles.adminPanelBtn}
+          onPress={() => router.push("/admin")}
+          activeOpacity={0.85}
+        >
+          <View style={styles.adminPanelIcon}>
+            <Ionicons name="shield" size={18} color="#4338CA" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.adminPanelTitle}>Admin Panel</Text>
+            <Text style={styles.adminPanelSub}>Manage jobs, verifications & reports</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color="#4338CA" />
+        </TouchableOpacity>
+      )}
 
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
         <Ionicons name="log-out-outline" size={18} color="#EF4444" />
@@ -858,9 +876,9 @@ const detailStyles = StyleSheet.create({
   value: { fontSize: 14, fontFamily: "Inter_500Medium", color: "#0F172A" },
 });
 
-function MenuItem({ icon, label, last }: { icon: string; label: string; last?: boolean }) {
+function MenuItem({ icon, label, last, onPress }: { icon: string; label: string; last?: boolean; onPress?: () => void }) {
   return (
-    <TouchableOpacity style={[menuStyles.row, !last && menuStyles.rowBorder]} activeOpacity={0.7}>
+    <TouchableOpacity style={[menuStyles.row, !last && menuStyles.rowBorder]} activeOpacity={0.7} onPress={onPress}>
       <View style={menuStyles.iconWrap}>
         <Ionicons name={icon as "settings-outline"} size={17} color="#64748B" />
       </View>
@@ -1050,4 +1068,9 @@ const styles = StyleSheet.create({
   shareBtnText: { color: "#fff", fontSize: 15, fontFamily: "Inter_700Bold" },
   whatsappShareBtn: { width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: "#F0FDF4", paddingVertical: 14, borderRadius: 16, borderWidth: 1, borderColor: "#BBF7D0" },
   whatsappShareText: { color: "#16A34A", fontSize: 14, fontFamily: "Inter_600SemiBold" },
+
+  adminPanelBtn: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#EEF2FF", borderRadius: 18, padding: 14, marginHorizontal: 16, marginBottom: 14, borderWidth: 1, borderColor: "#C7D2FE" },
+  adminPanelIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: "#E0E7FF", alignItems: "center", justifyContent: "center" },
+  adminPanelTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#3730A3" },
+  adminPanelSub: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#6366F1", marginTop: 1 },
 });

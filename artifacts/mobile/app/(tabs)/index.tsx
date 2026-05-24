@@ -74,6 +74,7 @@ export default function HomeScreen() {
         name={user.isAuthenticated ? user.name : "there"}
         searchValue={search}
         onSearchChange={setSearch}
+        onNotification={() => router.push("/notifications")}
       />
 
       <ScrollView
