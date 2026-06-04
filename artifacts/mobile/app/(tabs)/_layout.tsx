@@ -21,13 +21,9 @@ function NativeTabLayout() {
         <Icon sf={{ default: "briefcase", selected: "briefcase.fill" }} />
         <Label>Jobs</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="nearby">
-        <Icon sf={{ default: "location", selected: "location.fill" }} />
-        <Label>Nearby</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="saved">
-        <Icon sf={{ default: "bookmark", selected: "bookmark.fill" }} />
-        <Label>Saved</Label>
+      <NativeTabs.Trigger name="activity">
+        <Icon sf={{ default: "bell", selected: "bell.fill" }} />
+        <Label>Activity</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
         <Icon sf={{ default: "person", selected: "person.fill" }} />
@@ -103,26 +99,14 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="nearby"
+        name="activity"
         options={{
-          title: "Nearby",
+          title: "Activity",
           tabBarIcon: ({ color, focused }) =>
             isIOS ? (
-              <SymbolView name={focused ? "location.fill" : "location"} tintColor={color} size={24} />
+              <SymbolView name={focused ? "bell.fill" : "bell"} tintColor={color} size={24} />
             ) : (
-              <Ionicons name={focused ? "location" : "location-outline"} size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="saved"
-        options={{
-          title: "Saved",
-          tabBarIcon: ({ color, focused }) =>
-            isIOS ? (
-              <SymbolView name={focused ? "bookmark.fill" : "bookmark"} tintColor={color} size={24} />
-            ) : (
-              <Ionicons name={focused ? "bookmark" : "bookmark-outline"} size={22} color={color} />
+              <Ionicons name={focused ? "notifications" : "notifications-outline"} size={22} color={color} />
             ),
         }}
       />

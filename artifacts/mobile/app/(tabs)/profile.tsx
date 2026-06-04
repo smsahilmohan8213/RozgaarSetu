@@ -1,4 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as DocumentPicker from "expo-document-picker";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -42,12 +43,13 @@ export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, logout, savedJobIds, appliedJobIds, postedJobs, deletePostedJob, updateProfile } = useApp();
+  const { user, logout, savedJobIds, appliedJobIds, postedJobs, deletePostedJob, updateProfile, setEditingJobId } = useApp();
   const isWeb = Platform.OS === "web";
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSkillModal, setShowSkillModal] = useState(false);
   const [showSeekerCard, setShowSeekerCard] = useState(false);
+  const [showResumePreview, setShowResumePreview] = useState(false);
   const [newSkill, setNewSkill] = useState("");
   const [editForm, setEditForm] = useState({
     name: user.name,
@@ -79,6 +81,11 @@ export default function ProfileScreen() {
     ]);
   }
 
+  function handleEditJob(jobId: string) {
+    setEditingJobId(jobId);
+    router.push("/post-job");
+  }
+
   async function handleSaveProfile() {
     await updateProfile(editForm);
     setShowEditModal(false);
@@ -101,6 +108,50 @@ export default function ProfileScreen() {
   async function handleResumeToggle() {
     await updateProfile({ resumeUploaded: !user.resumeUploaded });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }
+
+  async function handleUploadResume() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/pdf",
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const file = result.assets[0];
+        const fileName = file.name || "resume.pdf";
+        await updateProfile({
+          resumeUploaded: true,
+          resumeName: fileName,
+          resumeUri: file.uri,
+        });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to upload resume");
+    }
+  }
+
+  async function handleDeleteResume() {
+    if (Platform.OS === "web") {
+      if (window.confirm("Delete your resume?")) {
+        await updateProfile({ resumeUploaded: false, resumeName: "", resumeUri: "" });
+        setShowResumePreview(false);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      return;
+    }
+    Alert.alert("Delete Resume", "Are you sure you want to delete your resume?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          await updateProfile({ resumeUploaded: false, resumeName: "", resumeUri: "" });
+          setShowResumePreview(false);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        },
+      },
+    ]);
   }
 
   async function handleShareCard() {
@@ -384,34 +435,44 @@ export default function ProfileScreen() {
                 </View>
                 <Text style={styles.cardTitle}>Resume</Text>
               </View>
-              <View style={[styles.resumeStatusBadge, { backgroundColor: user.resumeUploaded ? "#D1FAE5" : "#FEF3C7" }]}>
-                <View style={[styles.resumeDot, { backgroundColor: user.resumeUploaded ? "#059669" : "#D97706" }]} />
-                <Text style={[styles.resumeStatusText, { color: user.resumeUploaded ? "#059669" : "#D97706" }]}>
-                  {user.resumeUploaded ? "Uploaded" : "Not uploaded"}
-                </Text>
-              </View>
             </View>
 
-            <Text style={styles.resumeDesc}>
-              {user.resumeUploaded
-                ? "Your resume is visible to employers who view your profile."
-                : "Upload your resume to stand out from other applicants."}
-            </Text>
+            {user.resumeUploaded ? (
+              <>
+                {/* Compact Resume Card */}
+                <TouchableOpacity
+                  style={styles.resumeCard}
+                  onPress={() => setShowResumePreview(true)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.resumeCardLeft}>
+                    <Ionicons name="document" size={20} color="#DC2626" />
+                    <Text style={styles.resumeFileName} numberOfLines={1}>
+                      {user.resumeName || "resume.pdf"}
+                    </Text>
+                  </View>
+                  <View style={styles.resumeViewBtn}>
+                    <Text style={styles.resumeViewBtnText}>View</Text>
+                    <Ionicons name="chevron-forward" size={14} color="#2563EB" />
+                  </View>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.resumeDesc}>
+                  Upload your resume to stand out from other applicants.
+                </Text>
 
-            <TouchableOpacity
-              style={[styles.resumeBtn, { backgroundColor: user.resumeUploaded ? "#F1F5F9" : "#2563EB" }]}
-              onPress={handleResumeToggle}
-              activeOpacity={0.85}
-            >
-              <Ionicons
-                name={user.resumeUploaded ? "eye-outline" : "cloud-upload-outline"}
-                size={17}
-                color={user.resumeUploaded ? "#475569" : "#fff"}
-              />
-              <Text style={[styles.resumeBtnText, { color: user.resumeUploaded ? "#475569" : "#fff" }]}>
-                {user.resumeUploaded ? "View Resume" : "Upload Resume"}
-              </Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.resumeBtn}
+                  onPress={handleUploadResume}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="cloud-upload-outline" size={17} color="#fff" />
+                  <Text style={styles.resumeBtnText}>Upload Resume</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </>
       )}
@@ -419,6 +480,31 @@ export default function ProfileScreen() {
       {/* ── EMPLOYER SECTIONS ── */}
       {isEmployer && (
         <>
+          {/* Employer Dashboard */}
+          <View style={styles.dashboardRow}>
+            <StatCard
+              value={postedJobs.length}
+              label="Total Jobs"
+              icon="briefcase"
+              color="#2563EB"
+              bg="#DBEAFE"
+            />
+            <StatCard
+              value={postedJobs.length}
+              label="Active"
+              icon="checkmark-circle"
+              color="#059669"
+              bg="#D1FAE5"
+            />
+            <StatCard
+              value={postedJobs.reduce((sum, j) => sum + j.applicants, 0)}
+              label="Applicants"
+              icon="people"
+              color="#7C3AED"
+              bg="#EDE9FE"
+            />
+          </View>
+
           <TouchableOpacity
             style={styles.postJobBtn}
             onPress={() => router.push("/post-job")}
@@ -470,14 +556,26 @@ export default function ProfileScreen() {
                         </View>
                       )}
                       <Text style={styles.postedTime}>{job.postedTime}</Text>
+                      <View style={styles.applicantBadge}>
+                        <Ionicons name="people" size={12} color="#059669" />
+                        <Text style={styles.applicantText}>{job.applicants} applicants</Text>
+                      </View>
                     </View>
                   </View>
-                  <TouchableOpacity
-                    onPress={() => handleDeleteJob(job.id, job.title)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                  </TouchableOpacity>
+                  <View style={styles.postedActions}>
+                    <TouchableOpacity
+                      onPress={() => handleEditJob(job.id)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Ionicons name="pencil-outline" size={18} color="#2563EB" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteJob(job.id, job.title)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))
             )}
@@ -496,7 +594,6 @@ export default function ProfileScreen() {
           </View>
         </View>
         <MenuItem icon="notifications-outline" label="Job Alerts" onPress={() => router.push("/notifications")} />
-        <MenuItem icon="language-outline" label="Language: English" />
         <MenuItem icon="shield-outline" label="Privacy & Safety" />
         <MenuItem icon="help-circle-outline" label="Help & Support" last />
       </View>
@@ -785,6 +882,61 @@ export default function ProfileScreen() {
           </ScrollView>
         </View>
       </Modal>
+
+      {/* ── RESUME PREVIEW MODAL ── */}
+      <Modal visible={showResumePreview} animationType="slide" presentationStyle="pageSheet">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Resume Preview</Text>
+            <TouchableOpacity onPress={() => setShowResumePreview(false)} style={styles.modalClose}>
+              <Ionicons name="close" size={22} color="#0F172A" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.resumePreviewScroll} showsVerticalScrollIndicator={false}>
+            {/* PDF Preview Box */}
+            <View style={styles.resumePreviewBox}>
+              <Ionicons name="document" size={64} color="#DC2626" />
+              <Text style={styles.resumePreviewFileName}>{user.resumeName || "resume.pdf"}</Text>
+              <Text style={styles.resumePreviewHint}>PDF document</Text>
+              <TouchableOpacity
+                style={styles.openPdfBtn}
+                onPress={() => {
+                  if (user.resumeUri) {
+                    const { Linking } = require("react-native");
+                    Linking.openURL(user.resumeUri);
+                  }
+                }}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="open-outline" size={16} color="#2563EB" />
+                <Text style={styles.openPdfBtnText}>Open PDF</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ height: 20 }} />
+          </ScrollView>
+
+          <View style={styles.resumePreviewFooter}>
+            <TouchableOpacity
+              style={styles.deleteResumeBtn}
+              onPress={handleDeleteResume}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="trash-outline" size={16} color="#EF4444" />
+              <Text style={styles.deleteResumeBtnText}>Delete Resume</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.uploadNewResumeBtn}
+              onPress={handleUploadResume}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="cloud-upload-outline" size={16} color="#fff" />
+              <Text style={styles.uploadNewResumeBtnText}>Upload New</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -947,6 +1099,7 @@ const styles = StyleSheet.create({
 
   /* Stats */
   statsRow: { flexDirection: "row", gap: 10, marginBottom: 14, paddingHorizontal: 16 },
+  dashboardRow: { flexDirection: "row", gap: 10, marginBottom: 14, marginTop: 10, paddingHorizontal: 16 },
 
   /* Card */
   card: { backgroundColor: "#fff", borderRadius: 22, padding: 16, marginBottom: 14, marginHorizontal: 16, shadowColor: "#3B5BDB", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.07, shadowRadius: 12, elevation: 3 },
@@ -982,8 +1135,28 @@ const styles = StyleSheet.create({
   resumeDot: { width: 6, height: 6, borderRadius: 3 },
   resumeStatusText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
   resumeDesc: { fontSize: 13, fontFamily: "Inter_400Regular", color: "#64748B", marginBottom: 14, lineHeight: 20 },
-  resumeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 13, borderRadius: 14 },
-  resumeBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  resumeBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 13, borderRadius: 14, backgroundColor: "#2563EB" },
+  resumeBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  
+  /* Resume Card */
+  resumeCard: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F8FAFF", paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, borderWidth: 1, borderColor: "#E2E8F0", marginBottom: 0 },
+  resumeCardLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  resumeFileName: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#0F172A", flex: 1 },
+  resumeViewBtn: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#EEF2FF", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  resumeViewBtnText: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: "#2563EB" },
+
+  /* Resume Preview */
+  resumePreviewScroll: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
+  resumePreviewBox: { alignItems: "center", paddingVertical: 40, backgroundColor: "#F8FAFF", borderRadius: 18, borderWidth: 1, borderColor: "#E2E8F0", gap: 12 },
+  resumePreviewFileName: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#0F172A", textAlign: "center" },
+  resumePreviewHint: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#94A3B8" },
+  openPdfBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#DBEAFE", paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, marginTop: 8 },
+  openPdfBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#2563EB" },
+  resumePreviewFooter: { flexDirection: "row", gap: 10, paddingHorizontal: 20, paddingVertical: 16, borderTopWidth: 1, borderTopColor: "#F1F5F9" },
+  deleteResumeBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#FFF5F5", paddingVertical: 13, borderRadius: 14, borderWidth: 1, borderColor: "#FECACA" },
+  deleteResumeBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#EF4444" },
+  uploadNewResumeBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#2563EB", paddingVertical: 13, borderRadius: 14 },
+  uploadNewResumeBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#fff" },
 
   /* Employer */
   postJobBtn: { marginHorizontal: 16, marginBottom: 14, borderRadius: 18, overflow: "hidden", shadowColor: "#2563EB", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 5 },
@@ -1002,7 +1175,10 @@ const styles = StyleSheet.create({
   postedBadges: { flexDirection: "row", alignItems: "center", gap: 8 },
   urgentBadge: { backgroundColor: "#FEE2E2", paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   urgentText: { fontSize: 10, fontFamily: "Inter_600SemiBold", color: "#DC2626" },
+  applicantBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: "#DCFCE7" },
+  applicantText: { fontSize: 10, fontFamily: "Inter_600SemiBold", color: "#059669" },
   postedTime: { fontSize: 11, fontFamily: "Inter_400Regular", color: "#94A3B8" },
+  postedActions: { flexDirection: "row", alignItems: "center", gap: 12 },
 
   /* Settings / Logout */
   logoutBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 16, borderWidth: 1.5, borderColor: "#FECACA", backgroundColor: "#FFF5F5", marginHorizontal: 16, marginBottom: 10 },

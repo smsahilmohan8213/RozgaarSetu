@@ -29,28 +29,51 @@ export default function PostJobScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { postJob, user } = useApp();
+  const { postJob, updateJob, user, postedJobs, editingJobId } = useApp();
   const isWeb = Platform.OS === "web";
 
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [reqInput, setReqInput] = useState("");
 
-  const [draft, setDraft] = useState<DraftJob>({
-    title: "",
-    company: user.name ? `${user.name}'s Business` : "",
-    category: "Delivery",
-    location: "Rohini",
-    salaryMin: 15000,
-    salaryMax: 25000,
-    jobType: "Full Time",
-    experience: "Fresher",
-    isFreshersOk: true,
-    isUrgent: false,
-    isNegotiable: false,
-    description: "",
-    requirements: [],
-    whatsappNumber: user.phone,
+  // Get the job being edited, if any
+  const editingJob = editingJobId ? postedJobs.find((j) => j.id === editingJobId) : null;
+
+  const [draft, setDraft] = useState<DraftJob>(() => {
+    if (editingJob) {
+      return {
+        title: editingJob.title,
+        company: editingJob.company,
+        category: editingJob.category,
+        location: editingJob.location,
+        salaryMin: editingJob.salaryMin,
+        salaryMax: editingJob.salaryMax,
+        jobType: editingJob.jobType,
+        experience: editingJob.experience,
+        isFreshersOk: editingJob.isFreshersOk,
+        isUrgent: editingJob.isUrgent,
+        isNegotiable: editingJob.isNegotiable,
+        description: editingJob.description,
+        requirements: editingJob.requirements,
+        whatsappNumber: editingJob.whatsappNumber,
+      };
+    }
+    return {
+      title: "",
+      company: user.name ? `${user.name}'s Business` : "",
+      category: "Delivery",
+      location: "Rohini",
+      salaryMin: 15000,
+      salaryMax: 25000,
+      jobType: "Full Time",
+      experience: "Fresher",
+      isFreshersOk: true,
+      isUrgent: false,
+      isNegotiable: false,
+      description: "",
+      requirements: [],
+      whatsappNumber: user.phone,
+    };
   });
 
   function set<K extends keyof DraftJob>(key: K, val: DraftJob[K]) {
@@ -111,7 +134,11 @@ export default function PostJobScreen() {
   async function handleSubmit() {
     setSubmitting(true);
     try {
-      await postJob(draft);
+      if (editingJob && editingJobId) {
+        await updateJob(editingJobId, draft);
+      } else {
+        await postJob(draft);
+      }
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.replace("/(tabs)/profile");
     } catch (_) {
@@ -123,6 +150,24 @@ export default function PostJobScreen() {
   }
 
   const styles = getStyles(colors);
+
+  // Restrict posting to employers
+  if (user.role !== "employer") {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: colors.background }}>
+        <Ionicons name="lock-closed" size={48} color="#94A3B8" />
+        <Text style={{ fontSize: 18, fontFamily: "Inter_600SemiBold", color: "#0F172A", marginTop: 12, marginBottom: 8 }}>
+          Employers Only
+        </Text>
+        <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: "#64748B", textAlign: "center", marginBottom: 18 }}>
+          You must sign in as an employer to post jobs. Create or switch to an employer account to continue.
+        </Text>
+        <TouchableOpacity style={{ backgroundColor: "#2563EB", paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12 }} onPress={() => router.push("/auth")}>
+          <Text style={{ color: "#fff", fontFamily: "Inter_700Bold" }}>Sign in as Employer</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -139,7 +184,9 @@ export default function PostJobScreen() {
           <Ionicons name="arrow-back" size={22} color={colors.foreground} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>Post a Job</Text>
+          <Text style={[styles.headerTitle, { color: colors.foreground }]}>
+            {editingJob ? "Edit Job" : "Post a Job"}
+          </Text>
           <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
             Step {step + 1} of 3 — {STEP_TITLES[step]}
           </Text>
@@ -206,7 +253,15 @@ export default function PostJobScreen() {
           activeOpacity={0.82}
         >
           <Text style={styles.nextBtnText}>
-            {submitting ? "Posting…" : step === 2 ? "Post Job" : "Continue"}
+            {submitting
+              ? editingJob
+                ? "Updating…"
+                : "Posting…"
+              : step === 2
+                ? editingJob
+                  ? "Update Job"
+                  : "Post Job"
+                : "Continue"}
           </Text>
           {!submitting && (
             <Ionicons

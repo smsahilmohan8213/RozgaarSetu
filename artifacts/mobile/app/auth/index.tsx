@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp, type UserRole } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { Alert } from "react-native";
 
 type Step = "role" | "phone" | "otp" | "name";
 
@@ -43,17 +45,24 @@ export default function AuthScreen() {
   async function handlePhoneSubmit() {
     if (phone.length < 10) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setLoading(false);
-    setStep("otp");
+    // MVP: Simulate OTP send delay
+    setTimeout(() => {
+      setLoading(false);
+      setStep("otp");
+    }, 300);
   }
 
   async function handleOtpSubmit() {
-    if (otp.length < 4) return;
+    if (otp.length < 6) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 900));
-    setLoading(false);
-    setStep("name");
+    // MVP: Accept only 123456
+    if (otp === "123456") {
+      setLoading(false);
+      setStep("name");
+    } else {
+      setLoading(false);
+      Alert.alert("Invalid OTP", "Try: 123456 for MVP");
+    }
   }
 
   async function handleNameSubmit() {
@@ -83,7 +92,11 @@ export default function AuthScreen() {
       >
         <View style={styles.logoSection}>
           <View style={styles.logoBox}>
-            <Text style={styles.logoEmoji}>🌉</Text>
+            <Image
+              source={require("@/assets/images/icon.png")}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.appName}>RozgaarSetu</Text>
           <Text style={styles.tagline}>Your Bridge to Better Jobs</Text>
@@ -190,25 +203,33 @@ export default function AuthScreen() {
               </Text>
 
               <TextInput
-                style={[styles.otpInput, { borderColor: colors.primary, color: colors.foreground, backgroundColor: colors.muted }]}
-                placeholder="4-digit OTP"
-                placeholderTextColor={colors.mutedForeground}
-                keyboardType="number-pad"
-                maxLength={4}
-                value={otp}
-                onChangeText={setOtp}
-                textAlign="center"
-                autoFocus
-              />
+  style={[
+    styles.otpInput,
+    {
+      borderColor: colors.primary,
+      color: colors.foreground,
+      backgroundColor: colors.muted,
+    },
+  ]}
+  placeholder="6-digit OTP"
+  placeholderTextColor={colors.mutedForeground}
+  keyboardType="number-pad"
+  maxLength={6}
+  value={otp}
+  onChangeText={(text) => {
+    console.log("OTP:", text, "Length:", text.length);
+    setOtp(text);
+  }}
+/>
 
               <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-                Demo: enter any 4 digits
+                 Enter the 6-digit OTP sent to your phone
               </Text>
 
               <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: colors.primary, opacity: otp.length === 4 ? 1 : 0.5 }]}
+                style={[styles.primaryBtn, { backgroundColor: colors.primary, opacity: otp.length === 6 ? 1 : 0.5 }]}
                 onPress={handleOtpSubmit}
-                disabled={otp.length < 4 || loading}
+                disabled={otp.length < 6 || loading}
               >
                 {loading ? (
                   <ActivityIndicator color="#fff" />
@@ -277,7 +298,7 @@ function getStyles(colors: ReturnType<typeof useColors>) {
       justifyContent: "center",
       marginBottom: 12,
     },
-    logoEmoji: { fontSize: 40 },
+    logoImage: { width: 64, height: 64 },
     appName: {
       fontSize: 32,
       fontFamily: "Inter_700Bold",

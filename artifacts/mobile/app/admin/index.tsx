@@ -53,7 +53,7 @@ export default function AdminScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
-  const { postedJobs } = useApp();
+  const { postedJobs, user } = useApp();
 
   const [pendingList, setPendingList] = useState(PENDING_EMPLOYERS);
   const [reportedList, setReportedList] = useState(REPORTED_JOBS);
@@ -107,7 +107,22 @@ export default function AdminScreen() {
   ] as const;
 
   return (
+    // Only allow employers (or future admin roles) to access this screen
     <View style={styles.container}>
+      {user.role !== "employer" && (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <Ionicons name="lock-closed" size={48} color="#94A3B8" />
+          <Text style={{ fontSize: 18, fontFamily: "Inter_600SemiBold", color: "#0F172A", marginTop: 12, marginBottom: 8 }}>
+            Employer Access Required
+          </Text>
+          <Text style={{ fontSize: 13, fontFamily: "Inter_400Regular", color: "#64748B", textAlign: "center", marginBottom: 18 }}>
+            This section is restricted to employers. Please sign in as an employer to access admin features.
+          </Text>
+          <TouchableOpacity style={{ backgroundColor: "#2563EB", paddingHorizontal: 18, paddingVertical: 12, borderRadius: 12 }} onPress={() => router.push("/auth")}>
+            <Text style={{ color: "#fff", fontFamily: "Inter_700Bold" }}>Sign in as Employer</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       {/* Header */}
       <LinearGradient
         colors={["#1E1B4B", "#312E81", "#4338CA"]}
