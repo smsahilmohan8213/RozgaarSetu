@@ -95,17 +95,74 @@ function getTabsForRole(role: ReturnType<typeof useApp>["user"]["role"]): TabCon
 }
 
 function NativeTabLayout() {
+  // NativeTabs on web can fall back to ▼ arrows when SF Symbols can't be resolved.
+  // Force icons through Ionicons for consistent rendering.
   const { user } = useApp();
   const tabs = getTabsForRole(user.role);
 
   return (
     <NativeTabs>
-      {tabs.map((t) => (
-        <NativeTabs.Trigger key={t.name} name={t.name}>
-          <Icon sf={t.nativeIconSF as any} />
-          <Label>{t.label}</Label>
+      {/* Explicit screen order to avoid expo-router/unstable-native-tabs auto-sorting */}
+      <NativeTabs.Trigger name="index">
+        <Ionicons
+          name={
+            Platform.OS === "web"
+              ? "home"
+              : (tabs.find((t) => t.name === "index")?.androidIcon.unfocused as any) ?? "home"
+          }
+          size={22}
+          color={"#94A3B8"}
+        />
+        <Label>{tabs.find((t) => t.name === "index")?.label ?? "Home"}</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="jobs">
+        <Ionicons
+          name={
+            Platform.OS === "web"
+              ? "briefcase"
+              : (tabs.find((t) => t.name === "jobs")?.androidIcon.unfocused as any) ?? "briefcase"
+          }
+          size={22}
+          color={"#94A3B8"}
+        />
+        <Label>{tabs.find((t) => t.name === "jobs")?.label ?? "Jobs"}</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="activity">
+        <Ionicons
+          name={
+            Platform.OS === "web"
+              ? "notifications"
+              : (tabs.find((t) => t.name === "activity")?.androidIcon.unfocused as any) ?? "notifications"
+          }
+          size={22}
+          color={"#94A3B8"}
+        />
+        <Label>{tabs.find((t) => t.name === "activity")?.label ?? "Activity"}</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="profile">
+        <Ionicons
+          name={
+            Platform.OS === "web"
+              ? "person"
+              : (tabs.find((t) => t.name === "profile")?.androidIcon.unfocused as any) ?? "person"
+          }
+          size={22}
+          color={"#94A3B8"}
+        />
+        <Label>{tabs.find((t) => t.name === "profile")?.label ?? "Profile"}</Label>
+      </NativeTabs.Trigger>
+
+      {/* Keep dynamic role-based tabs (e.g. employer) from breaking native trigger registration */}
+      {tabs.some((t) => t.name === "post-job") ? (
+        <NativeTabs.Trigger name="post-job">
+          <Ionicons
+            name={(tabs.find((t) => t.name === "post-job")?.androidIcon.unfocused as any) ?? "add-circle"}
+            size={22}
+            color={"#94A3B8"}
+          />
+          <Label>{tabs.find((t) => t.name === "post-job")?.label ?? "Post Job"}</Label>
         </NativeTabs.Trigger>
-      ))}
+      ) : null}
     </NativeTabs>
   );
 }
@@ -158,23 +215,60 @@ function ClassicTabLayout() {
       <Tabs.Screen name="saved" options={{ href: null }} />
       <Tabs.Screen name="nearby" options={{ href: null }} />
 
-      {tabs.map((t) => (
+      {/* Explicitly hide/declare backup routes from the tab UI and lock screen order */}
+      <Tabs.Screen name="index" options={{ title: tabs.find((t) => t.name === "index")?.label ?? "Home" }} />
+      <Tabs.Screen name="jobs" options={{ title: tabs.find((t) => t.name === "jobs")?.label ?? "Jobs" }} />
+      <Tabs.Screen
+        name="activity"
+        options={{
+          title: tabs.find((t) => t.name === "activity")?.label ?? "Activity",
+          tabBarIcon: ({ color, focused }) =>
+            isIOS ? (
+              <SymbolView
+                name={
+                  (focused ? tabs.find((t) => t.name === "activity")?.iosIcon : tabs.find((t) => t.name === "activity")?.iosIconUnfocused) as any
+                }
+                tintColor={color}
+                size={24}
+              />
+            ) : (
+              <Ionicons
+                name={
+                  (focused
+                    ? tabs.find((t) => t.name === "activity")?.androidIcon.focused
+                    : tabs.find((t) => t.name === "activity")?.androidIcon.unfocused) as any
+                }
+                size={22}
+                color={color}
+              />
+            ),
+        }}
+      />
+      <Tabs.Screen name="profile" options={{ title: tabs.find((t) => t.name === "profile")?.label ?? "Profile" }} />
+
+      {/* Keep dynamic role-based tab (post-job) */}
+      {tabs.some((t) => t.name === "post-job") ? (
         <Tabs.Screen
-          key={t.name}
-          name={t.name}
+          name="post-job"
           options={{
-            title: t.label,
+            title: tabs.find((t) => t.name === "post-job")?.label ?? "Post Job",
             tabBarIcon: ({ color, focused }) =>
               isIOS ? (
                 <SymbolView
-                  name={focused ? t.iosIcon : t.iosIconUnfocused}
+                  name={
+                    (focused
+                      ? tabs.find((t) => t.name === "post-job")?.iosIcon
+                      : tabs.find((t) => t.name === "post-job")?.iosIconUnfocused) as any
+                  }
                   tintColor={color}
                   size={24}
                 />
               ) : (
                 <Ionicons
                   name={
-                    (focused ? t.androidIcon.focused : t.androidIcon.unfocused) as any
+                    (focused
+                      ? tabs.find((t) => t.name === "post-job")?.androidIcon.focused
+                      : tabs.find((t) => t.name === "post-job")?.androidIcon.unfocused) as any
                   }
                   size={22}
                   color={color}
@@ -182,7 +276,7 @@ function ClassicTabLayout() {
               ),
           }}
         />
-      ))}
+      ) : null}
     </Tabs>
   );
 }
