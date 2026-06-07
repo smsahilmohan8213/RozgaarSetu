@@ -9,26 +9,103 @@ import { Platform, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
+import { useApp } from "@/context/AppContext";
+
+type TabConfig = {
+  name: "index" | "jobs" | "activity" | "profile" | "post-job";
+  label: string;
+  iosIcon: any;
+  iosIconUnfocused: any;
+  androidIcon: { focused: string; unfocused: string };
+  nativeIconSF: { default: any; selected: any };
+};
+
+function getTabsForRole(role: ReturnType<typeof useApp>["user"]["role"]): TabConfig[] {
+  if (role === "employer") {
+    return [
+      {
+        name: "index",
+        label: "Home",
+        iosIcon: "house.fill",
+        iosIconUnfocused: "house",
+        androidIcon: { focused: "home", unfocused: "home-outline" },
+        nativeIconSF: { default: "house", selected: "house.fill" },
+      },
+      {
+        name: "jobs",
+        label: "Jobs",
+        iosIcon: "briefcase.fill",
+        iosIconUnfocused: "briefcase",
+        androidIcon: { focused: "briefcase", unfocused: "briefcase-outline" },
+        nativeIconSF: { default: "briefcase", selected: "briefcase.fill" },
+      },
+      {
+        name: "post-job",
+        label: "Post Job",
+        iosIcon: "plus.square.on.square.fill",
+        iosIconUnfocused: "plus.square.on.square",
+        androidIcon: { focused: "add-circle", unfocused: "add-circle-outline" },
+        nativeIconSF: { default: "plus.square.on.square", selected: "plus.square.on.square.fill" },
+      },
+      {
+        name: "profile",
+        label: "Profile",
+        iosIcon: "person.fill",
+        iosIconUnfocused: "person",
+        androidIcon: { focused: "person", unfocused: "person-outline" },
+        nativeIconSF: { default: "person", selected: "person.fill" },
+      },
+    ];
+  }
+
+  return [
+    {
+      name: "index",
+      label: "Home",
+      iosIcon: "house.fill",
+      iosIconUnfocused: "house",
+      androidIcon: { focused: "home", unfocused: "home-outline" },
+      nativeIconSF: { default: "house", selected: "house.fill" },
+    },
+    {
+      name: "jobs",
+      label: "Jobs",
+      iosIcon: "briefcase.fill",
+      iosIconUnfocused: "briefcase",
+      androidIcon: { focused: "briefcase", unfocused: "briefcase-outline" },
+      nativeIconSF: { default: "briefcase", selected: "briefcase.fill" },
+    },
+    {
+      name: "activity",
+      label: "Activity",
+      iosIcon: "bell.fill",
+      iosIconUnfocused: "bell",
+      androidIcon: { focused: "notifications", unfocused: "notifications-outline" },
+      nativeIconSF: { default: "bell", selected: "bell.fill" },
+    },
+    {
+      name: "profile",
+      label: "Profile",
+      iosIcon: "person.fill",
+      iosIconUnfocused: "person",
+      androidIcon: { focused: "person", unfocused: "person-outline" },
+      nativeIconSF: { default: "person", selected: "person.fill" },
+    },
+  ];
+}
 
 function NativeTabLayout() {
+  const { user } = useApp();
+  const tabs = getTabsForRole(user.role);
+
   return (
     <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "house", selected: "house.fill" }} />
-        <Label>Home</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="jobs">
-        <Icon sf={{ default: "briefcase", selected: "briefcase.fill" }} />
-        <Label>Jobs</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="activity">
-        <Icon sf={{ default: "bell", selected: "bell.fill" }} />
-        <Label>Activity</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="profile">
-        <Icon sf={{ default: "person", selected: "person.fill" }} />
-        <Label>Profile</Label>
-      </NativeTabs.Trigger>
+      {tabs.map((t) => (
+        <NativeTabs.Trigger key={t.name} name={t.name}>
+          <Icon sf={t.nativeIconSF as any} />
+          <Label>{t.label}</Label>
+        </NativeTabs.Trigger>
+      ))}
     </NativeTabs>
   );
 }
@@ -38,6 +115,9 @@ function ClassicTabLayout() {
   const insets = useSafeAreaInsets();
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
+  const { user } = useApp();
+
+  const tabs = getTabsForRole(user.role);
 
   return (
     <Tabs
@@ -74,54 +154,31 @@ function ClassicTabLayout() {
           ) : null,
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color, focused }) =>
-            isIOS ? (
-              <SymbolView name={focused ? "house.fill" : "house"} tintColor={color} size={24} />
-            ) : (
-              <Ionicons name={focused ? "home" : "home-outline"} size={23} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="jobs"
-        options={{
-          title: "Jobs",
-          tabBarIcon: ({ color, focused }) =>
-            isIOS ? (
-              <SymbolView name={focused ? "briefcase.fill" : "briefcase"} tintColor={color} size={24} />
-            ) : (
-              <Ionicons name={focused ? "briefcase" : "briefcase-outline"} size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="activity"
-        options={{
-          title: "Activity",
-          tabBarIcon: ({ color, focused }) =>
-            isIOS ? (
-              <SymbolView name={focused ? "bell.fill" : "bell"} tintColor={color} size={24} />
-            ) : (
-              <Ionicons name={focused ? "notifications" : "notifications-outline"} size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, focused }) =>
-            isIOS ? (
-              <SymbolView name={focused ? "person.fill" : "person"} tintColor={color} size={24} />
-            ) : (
-              <Ionicons name={focused ? "person" : "person-outline"} size={22} color={color} />
-            ),
-        }}
-      />
+      {tabs.map((t) => (
+        <Tabs.Screen
+          key={t.name}
+          name={t.name}
+          options={{
+            title: t.label,
+            tabBarIcon: ({ color, focused }) =>
+              isIOS ? (
+                <SymbolView
+                  name={focused ? t.iosIcon : t.iosIconUnfocused}
+                  tintColor={color}
+                  size={24}
+                />
+              ) : (
+                <Ionicons
+                  name={
+                    (focused ? t.androidIcon.focused : t.androidIcon.unfocused) as any
+                  }
+                  size={22}
+                  color={color}
+                />
+              ),
+          }}
+        />
+      ))}
     </Tabs>
   );
 }

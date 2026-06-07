@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   FlatList,
   Platform,
@@ -16,19 +16,212 @@ import { useApp } from "@/context/AppContext";
 import { JOBS } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
 
-type Tab = "saved" | "applied";
+type Section = "applications" | "saved" | "recent" | "alerts" | "notifications";
 
 export default function ActivityScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
   const { savedJobIds, appliedJobIds, jobStatuses, user, postedJobs } = useApp();
   const isWeb = Platform.OS === "web";
-  const [activeTab, setActiveTab] = useState<Tab>("saved");
 
-  const allJobs = [...postedJobs, ...JOBS];
-  const savedJobs = allJobs.filter((j) => savedJobIds.includes(j.id));
-  const appliedJobs = allJobs.filter((j) => appliedJobIds.includes(j.id));
+  const [activeSection, setActiveSection] = useState<Section>("applications");
+
+  const allJobs = useMemo(() => [...postedJobs, ...JOBS], [postedJobs]);
+  const savedJobs = useMemo(
+    () => allJobs.filter((j) => savedJobIds.includes(j.id)),
+    [allJobs, savedJobIds]
+  );
+  const appliedJobs = useMemo(
+    () => allJobs.filter((j) => appliedJobIds.includes(j.id)),
+    [allJobs, appliedJobIds]
+  );
+
+  const statusByJobId = jobStatuses ?? {};
+
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case "shortlisted":
+        return "#059669";
+      case "rejected":
+        return "#DC2626";
+      case "viewed":
+        return "#2563EB";
+      case "applied":
+        return "#2563EB";
+      default:
+        return "#94A3B8";
+    }
+  };
+
+  const getStatusIcon = (status?: string) => {
+    switch (status) {
+      case "shortlisted":
+        return "checkmark-circle";
+      case "rejected":
+        return "close-circle";
+      case "viewed":
+        return "eye";
+      case "applied":
+        return "hourglass";
+      default:
+        return "hourglass";
+    }
+  };
+
+  const applicationsList = useMemo(() => {
+    return appliedJobs.map((job) => ({
+      job,
+      status: statusByJobId[job.id],
+    }));
+  }, [appliedJobs, statusByJobId]);
+
+  const notifications = useMemo(() => {
+    const jobsById = new Map(allJobs.map((j) => [j.id, j]));
+
+    const entries = Object.entries(statusByJobId) as Array<
+      [string, "applied" | "viewed" | "shortlisted" | "rejected"]
+    >;
+
+    const items = entries
+      .map(([jobId, status]) => {
+        const job = jobsById.get(jobId);
+        if (!job) return null;
+        return { jobId, job, status };
+      })
+      .filter(Boolean) as Array<{ jobId: string; job: (typeof allJobs)[number]; status: any }>;
+
+    // Use postedTime string ordering best-effort
+    return items.sort((a, b) => (b.job.postedTime ?? "").localeCompare(a.job.postedTime ?? ""));
+  }, [allJobs, statusByJobId]);
+
+  const urgentJobsFromSaved = useMemo(
+    () => savedJobs.filter((j) => j.isUrgent),
+    [savedJobs]
+  );
+  const urgentJobsFromApplied = useMemo(
+    () => appliedJobs.filter((j) => j.isUrgent),
+    [appliedJobs]
+  );
+
+  const jobAlertsJobs = useMemo(() => {
+    // Priority order:
+    // 1. Shortlisted jobs
+    // 2. Viewed jobs
+    // 3. Urgent jobs from saved jobs
+    // 4. Urgent jobs from applied jobs
+    const jobsById = new Map(allJobs.map((j) => [j.id, j]));
+
+    const shortlistedIds = Object.entries(statusByJobId)
+      .filter(([, s]) => s === "shortlisted")
+      .map(([id]) => id);
+
+    const viewedIds = Object.entries(statusByJobId)
+      .filter(([, s]) => s === "viewed")
+      .map(([id]) => id);
+
+    const shortlistedJobs = shortlistedIds
+      .map((id) => jobsById.get(id))
+      .filter(Boolean) as typeof allJobs;
+
+    const viewedJobs = viewedIds
+      .map((id) => jobsById.get(id))
+      .filter(Boolean) as typeof allJobs;
+
+    const shortlistedUnique = new Set(shortlistedJobs.map((j) => j.id));
+    const viewedUnique = viewedJobs.filter((j) => !shortlistedUnique.has(j.id));
+
+    const urgentSavedUnique = urgentJobsFromSaved.filter(
+      (j) =>
+        !shortlistedUnique.has(j.id) &&
+        !viewedUnique.some((x) => x.id === j.id)
+    );
+
+    const urgentAppliedUnique = urgentJobsFromApplied.filter(
+      (j) =>
+        !shortlistedUnique.has(j.id) &&
+        !viewedUnique.some((x) => x.id === j.id) &&
+        !urgentSavedUnique.some((x) => x.id === j.id)
+    );
+
+    return [...shortlistedJobs, ...viewedUnique, ...urgentSavedUnique, ...urgentAppliedUnique];
+  }, [allJobs, statusByJobId, urgentJobsFromSaved, urgentJobsFromApplied]);
+
+  const recentActivityJobs = useMemo(() => {
+    // Reuse existing state: applied/saved/status-updated jobs
+    const ids = new Set<string>([
+      ...appliedJobIds,
+      ...savedJobIds,
+      ...Object.keys(statusByJobId),
+    ]);
+    const jobs = allJobs.filter((j) => ids.has(j.id));
+    return jobs.sort((a, b) => (b.postedTime ?? "").localeCompare(a.postedTime ?? ""));
+  }, [allJobs, appliedJobIds, savedJobIds, statusByJobId]);
+
+  const sectionTabs: Array<{ key: Section; icon: any; label: string }> = [
+    { key: "applications", icon: "checkmark-done", label: "Applications" },
+    { key: "saved", icon: "bookmark", label: "Saved Jobs" },
+    { key: "recent", icon: "time", label: "Recent Activity" },
+    { key: "alerts", icon: "flash", label: "Job Alerts" },
+    { key: "notifications", icon: "notifications", label: "Notifications" },
+  ];
+
+  function EmptyState({
+    icon,
+    title,
+    text,
+    action,
+  }: {
+    icon: any;
+    title: string;
+    text: string;
+    action?: { label: string; onPress: () => void };
+  }) {
+    return (
+      <View style={styles.empty}>
+        <Ionicons name={icon} size={44} color="#CBD5E1" />
+        <Text style={styles.emptyTitle}>{title}</Text>
+        <Text style={styles.emptyText}>{text}</Text>
+        {action ? (
+          <TouchableOpacity style={styles.emptyBtn} onPress={action.onPress}>
+            <Text style={styles.emptyBtnText}>{action.label}</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    );
+  }
+
+  const renderJobCardWithOptionalStatus = ({ item }: { item: any }) => {
+    const job = item.job ?? item;
+    const status = item.status ?? statusByJobId[job.id];
+    const showStatus = activeSection === "applications" || activeSection === "alerts";
+    return (
+      <View>
+        <JobCard job={job} />
+        {showStatus && status ? (
+          <View
+            style={[
+              styles.statusBadge,
+              {
+                backgroundColor: getStatusColor(status) + "15",
+                borderLeftColor: getStatusColor(status),
+              },
+            ]}
+          >
+            <Ionicons
+              name={getStatusIcon(status) as any}
+              size={14}
+              color={getStatusColor(status)}
+            />
+            <Text style={[styles.statusText, { color: getStatusColor(status) }]}>
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  };
 
   if (!user.isAuthenticated) {
     return (
@@ -47,49 +240,6 @@ export default function ActivityScreen() {
     );
   }
 
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case "shortlisted":
-        return "#059669";
-      case "rejected":
-        return "#DC2626";
-      case "viewed":
-        return "#2563EB";
-      default:
-        return "#94A3B8";
-    }
-  };
-
-  const getStatusIcon = (status?: string) => {
-    switch (status) {
-      case "shortlisted":
-        return "checkmark-circle";
-      case "rejected":
-        return "close-circle";
-      case "viewed":
-        return "eye";
-      default:
-        return "hourglass";
-    }
-  };
-
-  const renderJobItem = ({ item }: { item: any }) => {
-    const status = jobStatuses?.[item.id];
-    return (
-      <View>
-        <JobCard job={item} />
-        {status && activeTab === "applied" && (
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) + "15", borderLeftColor: getStatusColor(status) }]}>
-            <Ionicons name={getStatusIcon(status) as any} size={14} color={getStatusColor(status)} />
-            <Text style={[styles.statusText, { color: getStatusColor(status) }]}>
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </Text>
-          </View>
-        )}
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: isWeb ? 67 : insets.top + 8 }]}>
@@ -97,71 +247,150 @@ export default function ActivityScreen() {
       </View>
 
       <View style={[styles.tabs, { borderBottomColor: colors.border }]}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "saved" && styles.tabActive]}
-          onPress={() => setActiveTab("saved")}
-        >
-          <Ionicons
-            name={activeTab === "saved" ? "bookmark" : "bookmark-outline"}
-            size={16}
-            color={activeTab === "saved" ? colors.primary : "#94A3B8"}
-          />
-          <Text style={[styles.tabText, activeTab === "saved" && { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
-            Saved ({savedJobs.length})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "applied" && styles.tabActive]}
-          onPress={() => setActiveTab("applied")}
-        >
-          <Ionicons
-            name={activeTab === "applied" ? "checkmark-done" : "checkmark-done-outline"}
-            size={16}
-            color={activeTab === "applied" ? colors.primary : "#94A3B8"}
-          />
-          <Text style={[styles.tabText, activeTab === "applied" && { color: colors.primary, fontFamily: "Inter_600SemiBold" }]}>
-            Applied ({appliedJobs.length})
-          </Text>
-        </TouchableOpacity>
+        {sectionTabs.map((t) => {
+          const active = activeSection === t.key;
+          return (
+            <TouchableOpacity
+              key={t.key}
+              style={[styles.tab, active && styles.tabActive]}
+              onPress={() => setActiveSection(t.key)}
+            >
+              <Ionicons
+                name={t.icon}
+                size={16}
+                color={active ? colors.primary : "#94A3B8"}
+              />
+              <Text
+                style={[
+                  styles.tabText,
+                  active && { color: colors.primary, fontFamily: "Inter_600SemiBold" },
+                ]}
+                numberOfLines={1}
+              >
+                {t.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      {activeTab === "saved" ? (
-        savedJobs.length === 0 ? (
-          <View style={styles.empty}>
-            <Ionicons name="bookmark-outline" size={44} color="#CBD5E1" />
-            <Text style={styles.emptyTitle}>No Saved Jobs</Text>
-            <Text style={styles.emptyText}>Save jobs to find them quickly later</Text>
-            <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push("/(tabs)/jobs")}>
-              <Text style={styles.emptyBtnText}>Browse Jobs</Text>
-            </TouchableOpacity>
-          </View>
+      {activeSection === "applications" ? (
+        applicationsList.length === 0 ? (
+          <EmptyState
+            icon="checkmark-done-outline"
+            title="No applications yet"
+            text="Apply to jobs to track your progress"
+            action={{ label: "Find Jobs", onPress: () => router.push("/(tabs)/jobs") }}
+          />
         ) : (
           <FlatList
-            data={savedJobs}
-            keyExtractor={(item) => item.id}
-            renderItem={renderJobItem}
+            data={applicationsList}
+            keyExtractor={(item) => item.job.id}
+            renderItem={renderJobCardWithOptionalStatus}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
           />
         )
-      ) : appliedJobs.length === 0 ? (
-        <View style={styles.empty}>
-          <Ionicons name="checkmark-done-outline" size={44} color="#CBD5E1" />
-          <Text style={styles.emptyTitle}>No Applications</Text>
-          <Text style={styles.emptyText}>Apply to jobs to track your progress</Text>
-          <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push("/(tabs)/jobs")}>
-            <Text style={styles.emptyBtnText}>Find Jobs</Text>
-          </TouchableOpacity>
-        </View>
+      ) : activeSection === "saved" ? (
+        savedJobs.length === 0 ? (
+          <EmptyState
+            icon="bookmark-outline"
+            title="No saved jobs yet"
+            text="Save jobs to find them quickly later"
+            action={{ label: "Browse Jobs", onPress: () => router.push("/(tabs)/jobs") }}
+          />
+        ) : (
+          <FlatList
+            data={savedJobs}
+            keyExtractor={(item) => item.id}
+            renderItem={renderJobCardWithOptionalStatus}
+            contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
+          />
+        )
+      ) : activeSection === "recent" ? (
+        recentActivityJobs.length === 0 ? (
+          <EmptyState
+            icon="time"
+            title="No activity yet"
+            text="Your recent activity will show up here"
+          />
+        ) : (
+          <FlatList
+            data={recentActivityJobs}
+            keyExtractor={(item) => item.id}
+            renderItem={renderJobCardWithOptionalStatus}
+            contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
+          />
+        )
+      ) : activeSection === "alerts" ? (
+        jobAlertsJobs.length === 0 ? (
+          <EmptyState
+            icon="flash"
+            title="No job alerts yet"
+            text="You'll see updates for shortlisted/viewed and urgent jobs"
+          />
+        ) : (
+          <FlatList
+            data={jobAlertsJobs}
+            keyExtractor={(item) => item.id}
+            renderItem={renderJobCardWithOptionalStatus}
+            contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
+          />
+        )
       ) : (
-        <FlatList
-          data={appliedJobs}
-          keyExtractor={(item) => item.id}
-          renderItem={renderJobItem}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
+        notifications.length === 0 ? (
+          <EmptyState icon="notifications-outline" title="No notifications" text="You’ll see status updates here" />
+        ) : (
+          <FlatList
+            data={notifications}
+            keyExtractor={(item) => item.jobId}
+            renderItem={({ item }) => {
+              const status = item.status;
+              const statusColor = getStatusColor(status);
+              const title =
+                status === "shortlisted"
+                  ? "You were shortlisted"
+                  : status === "rejected"
+                    ? "Application rejected"
+                    : status === "viewed"
+                      ? "Employer viewed your application"
+                      : "Application updated";
+
+              const iconName = getStatusIcon(status);
+
+              return (
+                <View style={{ marginBottom: 12 }}>
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      {
+                        backgroundColor: statusColor + "15",
+                        borderLeftColor: statusColor,
+                        marginHorizontal: 16,
+                        marginBottom: 0,
+                      },
+                    ]}
+                  >
+                    <Ionicons name={iconName as any} size={16} color={statusColor} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.statusText, { color: "#0F172A", fontFamily: "Inter_700Bold", fontSize: 13 }]}>
+                        {title}
+                      </Text>
+                      <Text style={[styles.statusText, { color: "#64748B", fontFamily: "Inter_400Regular", fontSize: 12 }]}>
+                        {item.job.title} · {item.job.company}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            }}
+            contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
+          />
+        )
       )}
     </View>
   );
@@ -186,15 +415,18 @@ const styles = StyleSheet.create({
   tabs: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
+    paddingBottom: 2,
+    flexWrap: "nowrap",
   },
   tab: {
     flex: 1,
-    flexDirection: "row",
+    minWidth: 72,
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    paddingVertical: 12,
+    gap: 4,
+    paddingVertical: 10,
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
@@ -202,9 +434,10 @@ const styles = StyleSheet.create({
     borderBottomColor: "#2563EB",
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 11,
     fontFamily: "Inter_500Medium",
     color: "#94A3B8",
+    textAlign: "center",
   },
   list: {
     paddingHorizontal: 16,
