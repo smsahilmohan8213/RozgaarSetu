@@ -111,6 +111,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [postedJobs, setPostedJobs] = useState<Job[]>([]);
   const [selectedLocality, setSelectedLocality] = useState<string>("All Areas");
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const [applicationDatesByJobId, setApplicationDatesByJobId] = useState<Record<string, string>>({});
+
 
   useEffect(() => {
     loadFromStorage();
@@ -118,18 +120,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   async function loadFromStorage() {
     try {
-      const [userData, saved, applied, posted, statuses] = await Promise.all([
+      const [
+        userData,
+        saved,
+        applied,
+        posted,
+        statuses,
+        appliedAt,
+      ] = await Promise.all([
         AsyncStorage.getItem("@rozgaar_user"),
         AsyncStorage.getItem("@rozgaar_saved"),
         AsyncStorage.getItem("@rozgaar_applied"),
         AsyncStorage.getItem("@rozgaar_posted"),
         AsyncStorage.getItem("@rozgaar_statuses"),
+        AsyncStorage.getItem("@rozgaar_applied_at"),
       ]);
+
       if (userData) setUser(JSON.parse(userData));
       if (saved) setSavedJobIds(JSON.parse(saved));
       if (applied) setAppliedJobIds(JSON.parse(applied));
       if (posted) setPostedJobs(JSON.parse(posted));
       if (statuses) setJobStatuses(JSON.parse(statuses));
+      if (appliedAt) setApplicationDatesByJobId(JSON.parse(appliedAt));
+
     } catch (_) {}
   }
 
@@ -154,13 +167,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setAppliedJobIds([]);
     setPostedJobs([]);
     setJobStatuses({});
-    await Promise.all([
-      AsyncStorage.removeItem("@rozgaar_user"),
-      AsyncStorage.removeItem("@rozgaar_saved"),
-      AsyncStorage.removeItem("@rozgaar_applied"),
-      AsyncStorage.removeItem("@rozgaar_posted"),
-      AsyncStorage.removeItem("@rozgaar_statuses"),
-    ]);
+    setApplicationDatesByJobId({});
+
+      await Promise.all([
+        AsyncStorage.removeItem("@rozgaar_user"),
+        AsyncStorage.removeItem("@rozgaar_saved"),
+        AsyncStorage.removeItem("@rozgaar_applied"),
+        AsyncStorage.removeItem("@rozgaar_posted"),
+        AsyncStorage.removeItem("@rozgaar_statuses"),
+        AsyncStorage.removeItem("@rozgaar_applied_at"),
+      ]);
+
   }
 
   async function updateProfile(updates: Partial<Omit<UserProfile, "isAuthenticated" | "role" | "phone">>) {
@@ -183,6 +200,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const next = [...appliedJobIds, jobId];
       setAppliedJobIds(next);
       await AsyncStorage.setItem("@rozgaar_applied", JSON.stringify(next));
+
+      // Track application timestamp (needed for employer applicants MVP)
+      const appliedAtNext: Record<string, string> = {
+        ...(applicationDatesByJobId ?? {}),
+        [jobId]: new Date().toISOString(),
+      };
+      setApplicationDatesByJobId(appliedAtNext);
+      await AsyncStorage.setItem("@rozgaar_applied_at", JSON.stringify(appliedAtNext));
 
       // Increment applicant count for the job
       const jobIndex = postedJobs.findIndex((j) => j.id === jobId);

@@ -169,6 +169,7 @@ export default function ProfileScreen() {
 
   const isEmployer = user.role === "employer";
   const initials = user.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "?";
+
   const score = user.profileScore;
   const completionItems = [
     { label: "Name set", done: !!user.name },
@@ -497,6 +498,13 @@ export default function ProfileScreen() {
               bg="#D1FAE5"
             />
             <StatCard
+              value={postedJobs.length === 0 ? 0 : 0}
+              label="Closed"
+              icon="close-circle"
+              color="#64748B"
+              bg="#F1F5F9"
+            />
+            <StatCard
               value={postedJobs.reduce((sum, j) => sum + j.applicants, 0)}
               label="Applicants"
               icon="people"
@@ -504,6 +512,7 @@ export default function ProfileScreen() {
               bg="#EDE9FE"
             />
           </View>
+
 
           <TouchableOpacity
             style={styles.postJobBtn}
