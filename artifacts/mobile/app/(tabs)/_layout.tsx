@@ -154,6 +154,10 @@ function ClassicTabLayout() {
           ) : null,
       }}
     >
+      {/* Explicitly hide backup routes from the tab UI */}
+      <Tabs.Screen name="saved" options={{ href: null }} />
+      <Tabs.Screen name="nearby" options={{ href: null }} />
+
       {tabs.map((t) => (
         <Tabs.Screen
           key={t.name}
