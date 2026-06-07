@@ -96,76 +96,73 @@ function getTabsForRole(role: ReturnType<typeof useApp>["user"]["role"]): TabCon
 
 function NativeTabLayout() {
   // NativeTabs on web can fall back to ▼ arrows when SF Symbols can't be resolved.
-  // Force icons through Ionicons for consistent rendering.
+  // Use deterministic Ionicons per tab and avoid any fallback arrow indicators.
   const { user } = useApp();
   const tabs = getTabsForRole(user.role);
+  const colors = useColors();
+
+  const getIoniconName = (tabName: TabConfig["name"]): any => {
+    const tab = tabs.find((t) => t.name === tabName);
+    if (!tab) {
+      return tabName === "jobs"
+        ? "briefcase"
+        : tabName === "activity"
+          ? "notifications"
+          : tabName === "profile"
+            ? "person"
+            : tabName === "post-job"
+              ? "add-circle"
+              : "home";
+    }
+
+    // Always use unfocused icon (stable Ionicons name).
+    return tab.androidIcon.unfocused;
+  };
 
   return (
     <NativeTabs>
+
+
+
       {/* Explicit screen order to avoid expo-router/unstable-native-tabs auto-sorting */}
       <NativeTabs.Trigger name="index">
-        <Ionicons
-          name={
-            Platform.OS === "web"
-              ? "home"
-              : (tabs.find((t) => t.name === "index")?.androidIcon.unfocused as any) ?? "home"
-          }
-          size={22}
-          color={"#94A3B8"}
-        />
+        <Ionicons name={getIoniconName("index") as any} size={22} color={colors.primary} />
+
+
         <Label>{tabs.find((t) => t.name === "index")?.label ?? "Home"}</Label>
       </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="jobs">
-        <Ionicons
-          name={
-            Platform.OS === "web"
-              ? "briefcase"
-              : (tabs.find((t) => t.name === "jobs")?.androidIcon.unfocused as any) ?? "briefcase"
-          }
-          size={22}
-          color={"#94A3B8"}
-        />
+        <Ionicons name={getIoniconName("jobs") as any} size={22} color={colors.primary} />
+
         <Label>{tabs.find((t) => t.name === "jobs")?.label ?? "Jobs"}</Label>
       </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="activity">
-        <Ionicons
-          name={
-            Platform.OS === "web"
-              ? "notifications"
-              : (tabs.find((t) => t.name === "activity")?.androidIcon.unfocused as any) ?? "notifications"
-          }
-          size={22}
-          color={"#94A3B8"}
-        />
+        <Ionicons name={getIoniconName("activity") as any} size={22} color={colors.primary} />
+
         <Label>{tabs.find((t) => t.name === "activity")?.label ?? "Activity"}</Label>
       </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="profile">
-        <Ionicons
-          name={
-            Platform.OS === "web"
-              ? "person"
-              : (tabs.find((t) => t.name === "profile")?.androidIcon.unfocused as any) ?? "person"
-          }
-          size={22}
-          color={"#94A3B8"}
-        />
+        <Ionicons name={getIoniconName("profile") as any} size={22} color={colors.primary} />
+
         <Label>{tabs.find((t) => t.name === "profile")?.label ?? "Profile"}</Label>
       </NativeTabs.Trigger>
 
-      {/* Keep dynamic role-based tabs (e.g. employer) from breaking native trigger registration */}
+      {/* Keep dynamic role-based tab (e.g. employer) from breaking native trigger registration */}
       {tabs.some((t) => t.name === "post-job") ? (
         <NativeTabs.Trigger name="post-job">
-          <Ionicons
-            name={(tabs.find((t) => t.name === "post-job")?.androidIcon.unfocused as any) ?? "add-circle"}
-            size={22}
-            color={"#94A3B8"}
-          />
+          <Ionicons name={getIoniconName("post-job") as any} size={22} color={colors.primary} />
+
           <Label>{tabs.find((t) => t.name === "post-job")?.label ?? "Post Job"}</Label>
         </NativeTabs.Trigger>
       ) : null}
     </NativeTabs>
   );
 }
+
+
 
 function ClassicTabLayout() {
   const colors = useColors();
