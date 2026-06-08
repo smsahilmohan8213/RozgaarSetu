@@ -15,7 +15,9 @@ type TabConfig = {
 };
 
 function getTabsForRole(role: ReturnType<typeof useApp>["user"]["role"]): TabConfig[] {
+  console.log("getTabsForRole role:", role);
   if (role === "employer") {
+
     return [
       {
         name: "index",
@@ -43,6 +45,7 @@ function getTabsForRole(role: ReturnType<typeof useApp>["user"]["role"]): TabCon
   return [
     {
       name: "index",
+
       label: "Home",
       ionIcon: { focused: "home", unfocused: "home-outline" },
     },
@@ -71,7 +74,10 @@ function ClassicTabLayout() {
   const isWeb = Platform.OS === "web";
   const { user } = useApp();
 
+  console.log("ROLE:", user.role);
   const tabs = getTabsForRole(user.role);
+  console.log("TABS:", tabs);
+
 
   return (
     <Tabs
@@ -130,14 +136,12 @@ function ClassicTabLayout() {
         name="saved"
         options={{
           href: null,
-          tabBarButton: () => null,
         }}
       />
       <Tabs.Screen
         name="nearby"
         options={{
           href: null,
-          tabBarButton: () => null,
         }}
       />
     </Tabs>
