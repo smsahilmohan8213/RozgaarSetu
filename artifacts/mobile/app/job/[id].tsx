@@ -15,7 +15,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/context/AppContext";
-import { JOBS } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
 
 export default function JobDetailScreen() {
@@ -26,7 +25,7 @@ export default function JobDetailScreen() {
   const { isJobSaved, toggleSaveJob, isJobApplied, user, postedJobs } = useApp();
   const isWeb = Platform.OS === "web";
 
-  const allJobs = [...postedJobs, ...JOBS];
+  const allJobs = postedJobs;
   const job = allJobs.find((j) => j.id === id);
 
   if (!job) {

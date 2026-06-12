@@ -13,7 +13,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { JobCard } from "@/components/JobCard";
 import { useApp } from "@/context/AppContext";
-import { JOBS } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
 
 export default function SavedScreen() {
@@ -23,7 +22,7 @@ export default function SavedScreen() {
   const { savedJobIds, appliedJobIds, user, postedJobs } = useApp();
   const isWeb = Platform.OS === "web";
 
-  const allJobs = [...postedJobs, ...JOBS];
+  const allJobs = postedJobs;
   const savedJobs = allJobs.filter((j) => savedJobIds.includes(j.id));
   const appliedJobs = allJobs.filter((j) => appliedJobIds.includes(j.id));
 

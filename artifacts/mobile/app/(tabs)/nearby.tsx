@@ -15,7 +15,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { JobCard } from "@/components/JobCard";
 import { useApp } from "@/context/AppContext";
-import { JOBS } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
 
 type RadiusOption = 1 | 2 | 5 | 10;
@@ -50,7 +49,7 @@ export default function NearbyScreen() {
   const effectiveLat = userLat ?? USER_LAT;
   const effectiveLng = userLng ?? USER_LNG;
 
-  const allJobs = [...postedJobs, ...JOBS];
+  const allJobs = postedJobs;
   const nearbyJobs = allJobs
     .map((job) => ({
       ...job,

@@ -16,7 +16,7 @@ import { JobCard } from "@/components/JobCard";
 import { SearchHeader } from "@/components/SearchHeader";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { useApp } from "@/context/AppContext";
-import { JOBS, LOCALITIES, type Job } from "@/data/jobs";
+import { LOCALITIES, type Job } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
 
 const GREETING_MAP: Record<string, string> = {
@@ -41,10 +41,12 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(false);
   const isWeb = Platform.OS === "web";
 
-  const allJobs = [...postedJobs, ...JOBS];
+  const allJobs = postedJobs;
   const urgentJobs = allJobs.filter((j) => j.isUrgent);
-  const featuredJobs = JOBS.filter((j) => j.isVerified && j.isTrusted).slice(0, 5);
-  const recentJobs = [...postedJobs, ...JOBS].sort((a, b) => a.postedTime.localeCompare(b.postedTime)).slice(0, 8);
+  const featuredJobs = allJobs.filter((j) => j.isVerified && j.isTrusted).slice(0, 5);
+  const recentJobs = [...allJobs]
+    .sort((a, b) => b.postedTime.localeCompare(a.postedTime))
+    .slice(0, 8);
 
   const filteredJobs = allJobs.filter((job) => {
     const matchSearch =

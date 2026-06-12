@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { JobCard } from "@/components/JobCard";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { useApp } from "@/context/AppContext";
-import { CATEGORIES, JOBS, type JobCategory } from "@/data/jobs";
+import { CATEGORIES, type JobCategory } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
 
 type SortOption = "recent" | "salary" | "distance";
@@ -31,7 +31,7 @@ export default function JobsScreen() {
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [showFilters, setShowFilters] = useState(false);
 
-  const allJobs = [...postedJobs, ...JOBS];
+  const allJobs = postedJobs;
 
   const filtered = allJobs.filter((job) => {
     const matchSearch =

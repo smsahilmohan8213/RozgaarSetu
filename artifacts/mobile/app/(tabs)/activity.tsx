@@ -13,7 +13,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { JobCard } from "@/components/JobCard";
 import { useApp } from "@/context/AppContext";
-import { JOBS } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
 
 type Section = "applications" | "saved" | "recent" | "alerts" | "notifications";
@@ -28,7 +27,7 @@ export default function ActivityScreen() {
 
   const [activeSection, setActiveSection] = useState<Section>("applications");
 
-  const allJobs = useMemo(() => [...postedJobs, ...JOBS], [postedJobs]);
+  const allJobs = useMemo(() => postedJobs, [postedJobs]);
   const savedJobs = useMemo(
     () => allJobs.filter((j) => savedJobIds.includes(j.id)),
     [allJobs, savedJobIds]

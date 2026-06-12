@@ -16,7 +16,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/context/AppContext";
-import { JOBS } from "@/data/jobs";
 
 type ApplyStep = "confirm" | "sending" | "success";
 
@@ -29,8 +28,8 @@ export default function ApplyScreen() {
 
   const [step, setStep] = useState<ApplyStep>("confirm");
 
-  const allJobs = [...postedJobs, ...JOBS];
-  const job = allJobs.find((j) => j.id === id);
+  const job = postedJobs.find((j) => j.id === id);
+
 
   if (!job) {
     return (

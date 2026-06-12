@@ -208,6 +208,9 @@ importers:
 
   artifacts/mobile:
     dependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.106.2
+        version: 2.106.2
       expo-document-picker:
         specifier: ~14.0.8
         version: 14.0.8(expo@54.0.34)
