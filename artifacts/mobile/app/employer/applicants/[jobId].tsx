@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+
+import { supabase } from "@/lib/supabaseClient";
 import { Alert, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -23,16 +25,11 @@ export default function EmployerApplicantsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const { user, postedJobs, appliedJobIds, jobStatuses, isJobApplied, setJobStatus } = (() => {
-    // typed extraction helper (keeps TypeScript clean)
+  const { postedJobs, updateApplicationStatus } = (() => {
     const ctx = useApp();
     return {
-      user: ctx.user,
       postedJobs: ctx.postedJobs,
-      appliedJobIds: ctx.appliedJobIds,
-      jobStatuses: ctx.jobStatuses,
-      isJobApplied: ctx.isJobApplied,
-      setJobStatus: ctx.setJobStatus,
+      updateApplicationStatus: ctx.updateApplicationStatus,
     };
   })();
 
@@ -42,60 +39,101 @@ export default function EmployerApplicantsScreen() {
     return postedJobs.find((j) => j.id === jobId);
   }, [postedJobs, jobId]);
 
-  const status: ApplicantStatus | undefined = useMemo(() => {
-    if (!jobId) return undefined;
-    return jobStatuses[jobId] as ApplicantStatus | undefined;
-  }, [jobId, jobStatuses]);
+  type ApplicationRow = {
+    id: string;
+    applicant_id: string;
+    applicant_name: string | null;
+    phone: string | null;
+    status: ApplicantStatus;
+    applied_at: string;
+    viewed_at: string | null;
+    shortlisted_at: string | null;
+    rejected_at: string | null;
+    hired_at: string | null;
+    resume_path: string | null;
+    resume_url: string | null;
+  };
 
-  const applicants = useMemo(() => {
-
-    // MVP constraint (approved): no backend & no applicant list state exists.
-    // So we show only the current user if they applied to this job.
-    if (!jobId) return [];
-    if (!isJobApplied(jobId)) return [];
+  const hasResume = (a: ApplicationRow) => Boolean(a.resume_url || a.resume_path);
 
 
-    return [
-      {
-        id: `self_${jobId}`,
-        name: user.name || "Applicant",
-        appliedAt: undefined as string | undefined,
-        resumeAvailable: user.resumeUploaded,
-      },
-    ];
-  }, [isJobApplied, jobId, user.name, user.resumeUploaded]);
 
-  function getStatusPill() {
-    if (!status) return null;
+
+  const [applicants, setApplicants] = useState<ApplicationRow[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!jobId) return;
+    let mounted = true;
+    setIsLoading(true);
+    setErrorMsg(null);
+
+    void (async () => {
+      const { data, error } = await supabase
+        .from("applications")
+        .select(
+          "id, applicant_id, applicant_name, phone, status, applied_at, viewed_at, shortlisted_at, rejected_at, hired_at, resume_path, resume_url"
+        )
+        .eq("job_id", jobId)
+        .order("applied_at", { ascending: false });
+
+      if (!mounted) return;
+      if (error) {
+        setErrorMsg(error.message);
+        setApplicants([]);
+        return;
+      }
+
+      setApplicants((Array.isArray(data) ? data : []) as ApplicationRow[]);
+    })().finally(() => {
+      if (!mounted) return;
+      setIsLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [jobId]);
+
+  function getStatusPill(status: ApplicantStatus) {
     if (status === "shortlisted") return { text: "Shortlisted", bg: "#D1FAE5", color: "#059669", icon: "checkmark-circle" as const };
     if (status === "rejected") return { text: "Rejected", bg: "#FEE2E2", color: "#DC2626", icon: "close-circle" as const };
     if (status === "viewed") return { text: "Viewed", bg: "#DBEAFE", color: "#2563EB", icon: "eye" as const };
     return { text: "Applied", bg: "#DBEAFE", color: "#2563EB", icon: "hourglass" as const };
   }
 
-  async function handleShortlist() {
+  async function handleShortlist(applicantId: string) {
     if (!jobId) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await setJobStatus(jobId, "shortlisted");
+    await updateApplicationStatus({
+      jobId,
+      applicantId,
+      status: "shortlisted",
+    });
   }
 
-  async function handleReject() {
+
+  async function handleReject(applicantId: string) {
     if (!jobId) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    await setJobStatus(jobId, "rejected");
+    await updateApplicationStatus({
+      jobId,
+      applicantId,
+      status: "rejected",
+    });
   }
 
-  function handleViewResume() {
-    if (!user.resumeUri) {
+  function handleViewResume(resumeUrl: string | null, resumePath: string | null) {
+    const url = resumeUrl || (resumePath ? supabase.storage.from("resumes").getPublicUrl(resumePath).data.publicUrl : null);
+    if (!url) {
       if (Platform.OS === "web") window.alert("Resume not available");
       else Alert.alert("Resume not available");
       return;
     }
-    const url = user.resumeUri;
+
     Linking.openURL(url);
   }
-
-  const pill = getStatusPill();
 
   if (!job) {
     return (
@@ -132,13 +170,6 @@ export default function EmployerApplicantsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingBottom: isWeb ? 100 : insets.bottom + 120 }]}
       >
-        {pill && (
-          <View style={[styles.pill, { backgroundColor: pill.bg, borderLeftColor: pill.color }]}>
-            <Ionicons name={pill.icon as any} size={16} color={pill.color} />
-            <Text style={[styles.pillText, { color: pill.color }]}>{pill.text}</Text>
-          </View>
-        )}
-
         {applicants.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="person-outline" size={44} color={colors.mutedForeground} />
@@ -146,56 +177,89 @@ export default function EmployerApplicantsScreen() {
             <Text style={styles.emptySub}>When someone applies, they’ll show up here.</Text>
           </View>
         ) : (
-          applicants.map((a) => (
+          applicants.map((a) => {
+            const pill = getStatusPill(a.status);
+
+            return (
             <View key={a.id} style={styles.applicantCard}>
+              <View style={[styles.pill, { backgroundColor: pill.bg, borderLeftColor: pill.color }]}>
+                <Ionicons name={pill.icon as any} size={16} color={pill.color} />
+                <Text style={[styles.pillText, { color: pill.color }]}>{pill.text}</Text>
+              </View>
+
               <View style={styles.applicantTop}>
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>
-                    {(a.name.split(" ").filter(Boolean).map((w) => w[0]).join("") || "?").toUpperCase().slice(0, 2)}
+                    {((a.applicant_name ?? "?")
+                      .split(" ")
+                      .filter(Boolean)
+                      .map((w) => w[0])
+                      .join("")
+                      .toUpperCase() || "?")
+                      .slice(0, 2)}
                   </Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.applicantName}>{a.name}</Text>
-                  <Text style={styles.applicantMeta}>Applied: {formatDate(a.appliedAt)}</Text>
+                  <Text style={styles.applicantName}>{a.applicant_name ?? "Applicant"}</Text>
+                  <Text style={styles.applicantMeta}>{a.phone ?? "—"}</Text>
                 </View>
               </View>
 
               <View style={styles.row}>
-                <View style={[styles.resumeStatus, { backgroundColor: a.resumeAvailable ? "#D1FAE5" : "#F1F5F9" }]}>
+                <View style={[styles.resumeStatus, { backgroundColor: a.resume_url || a.resume_path ? "#D1FAE5" : "#F1F5F9" }]}>
                   <Ionicons
-                    name={a.resumeAvailable ? "checkmark-circle" : "close-circle"}
+                    name={a.resume_url || a.resume_path ? "checkmark-circle" : "close-circle"}
                     size={14}
-                    color={a.resumeAvailable ? "#059669" : "#94A3B8"}
+                    color={a.resume_url || a.resume_path ? "#059669" : "#94A3B8"}
                   />
-                  <Text style={[styles.resumeStatusText, { color: a.resumeAvailable ? "#059669" : "#64748B" }]}>
-                    {a.resumeAvailable ? "Resume available" : "No resume"}
+                  <Text style={[styles.resumeStatusText, { color: a.resume_url || a.resume_path ? "#059669" : "#64748B" }]}>
+                    {a.resume_url || a.resume_path ? "Resume available" : "No resume"}
                   </Text>
                 </View>
               </View>
 
+              <View style={styles.row}>
+                <Text style={styles.applicantMeta}>Status: {a.status}</Text>
+                <Text style={styles.applicantMeta}>Applied: {formatDate(a.applied_at)}</Text>
+                <Text style={styles.applicantMeta}>Viewed: {formatDate(a.viewed_at ?? undefined)}</Text>
+                <Text style={styles.applicantMeta}>Shortlisted: {formatDate(a.shortlisted_at ?? undefined)}</Text>
+                <Text style={styles.applicantMeta}>Rejected: {formatDate(a.rejected_at ?? undefined)}</Text>
+                <Text style={styles.applicantMeta}>Hired: {formatDate(a.hired_at ?? undefined)}</Text>
+              </View>
+
               <View style={styles.actionsRow}>
                 <TouchableOpacity
-                  style={[styles.actionBtn, !a.resumeAvailable && { backgroundColor: "#F1F5F9" }]}
-                  onPress={handleViewResume}
-                  disabled={!a.resumeAvailable}
+                  style={[styles.actionBtn, !hasResume(a) && { backgroundColor: "#F1F5F9" }]}
+                  onPress={() => handleViewResume(a.resume_url, a.resume_path)}
+                  disabled={!hasResume(a)}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="document" size={18} color={a.resumeAvailable ? "#2563EB" : "#94A3B8"} />
-                  <Text style={[styles.actionText, { color: a.resumeAvailable ? "#2563EB" : "#94A3B8" }]}>View Resume</Text>
+                  <Ionicons name="document" size={18} color={hasResume(a) ? "#2563EB" : "#94A3B8"} />
+                  <Text style={[styles.actionText, { color: hasResume(a) ? "#2563EB" : "#94A3B8" }]}>View Resume</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" }]} onPress={handleShortlist} activeOpacity={0.85}>
+
+                <TouchableOpacity
+                  style={[styles.actionBtn, { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" }]}
+                  onPress={() => handleShortlist(a.applicant_id)}
+                  activeOpacity={0.85}
+                >
                   <Ionicons name="checkmark" size={18} color="#059669" />
                   <Text style={[styles.actionText, { color: "#059669" }]}>Shortlist</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: "#FFF5F5", borderColor: "#FECACA" }]} onPress={handleReject} activeOpacity={0.85}>
+                <TouchableOpacity
+                  style={[styles.actionBtn, { backgroundColor: "#FFF5F5", borderColor: "#FECACA" }]}
+                  onPress={() => handleReject(a.applicant_id)}
+                  activeOpacity={0.85}
+                >
                   <Ionicons name="close" size={18} color="#DC2626" />
                   <Text style={[styles.actionText, { color: "#DC2626" }]}>Reject</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          ))
+            );
+          })
         )}
       </ScrollView>
     </View>

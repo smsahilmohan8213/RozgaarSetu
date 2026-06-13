@@ -43,7 +43,7 @@ export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, logout, savedJobIds, appliedJobIds, postedJobs, deletePostedJob, updateProfile, setEditingJobId } = useApp();
+  const { user, logout, savedJobIds, appliedJobIds, postedJobs, deletePostedJob, updateProfile, setEditingJobId, uploadResumeFromDevice, deleteResumeFromStorage, openResume } = useApp();
   const isWeb = Platform.OS === "web";
 
   const [showEditModal, setShowEditModal] = useState(false);
@@ -116,17 +116,13 @@ export default function ProfileScreen() {
         type: "application/pdf",
       });
 
-      if (!result.canceled && result.assets.length > 0) {
-        const file = result.assets[0];
-        const fileName = file.name || "resume.pdf";
-        await updateProfile({
-          resumeUploaded: true,
-          resumeName: fileName,
-          resumeUri: file.uri,
-        });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    } catch (error) {
+      if (result.canceled || result.assets.length === 0) return;
+
+      const file = result.assets[0];
+      await uploadResumeFromDevice({ file: { uri: file.uri, name: file.name } });
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
       Alert.alert("Error", "Failed to upload resume");
     }
   }
@@ -134,19 +130,20 @@ export default function ProfileScreen() {
   async function handleDeleteResume() {
     if (Platform.OS === "web") {
       if (window.confirm("Delete your resume?")) {
-        await updateProfile({ resumeUploaded: false, resumeName: "", resumeUri: "" });
+        await deleteResumeFromStorage();
         setShowResumePreview(false);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
       return;
     }
+
     Alert.alert("Delete Resume", "Are you sure you want to delete your resume?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
         style: "destructive",
         onPress: async () => {
-          await updateProfile({ resumeUploaded: false, resumeName: "", resumeUri: "" });
+          await deleteResumeFromStorage();
           setShowResumePreview(false);
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         },
@@ -910,10 +907,13 @@ export default function ProfileScreen() {
               <Text style={styles.resumePreviewHint}>PDF document</Text>
               <TouchableOpacity
                 style={styles.openPdfBtn}
-                onPress={() => {
-                  if (user.resumeUri) {
+                onPress={async () => {
+                  try {
+                    const url = await openResume();
                     const { Linking } = require("react-native");
-                    Linking.openURL(user.resumeUri);
+                    Linking.openURL(url);
+                  } catch {
+                    Alert.alert("Error", "Resume not available");
                   }
                 }}
                 activeOpacity={0.85}

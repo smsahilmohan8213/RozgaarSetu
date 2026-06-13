@@ -56,9 +56,13 @@ interface AppContextType {
   login: (phone: string, name: string, role: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<Omit<UserProfile, "isAuthenticated" | "role" | "phone">>) => Promise<void>;
+  uploadResumeFromDevice: (params: { file: { uri: string; name?: string } }) => Promise<void>;
+  deleteResumeFromStorage: () => Promise<void>;
+  openResume: () => Promise<string>;
   toggleSaveJob: (jobId: string) => Promise<void>;
   applyToJob: (jobId: string) => Promise<void>;
   setJobStatus: (jobId: string, status: "applied" | "viewed" | "shortlisted" | "rejected") => Promise<void>;
+  updateApplicationStatus: (params: { jobId: string; applicantId: string; status: "viewed" | "shortlisted" | "rejected" }) => Promise<void>;
   postJob: (draft: DraftJob) => Promise<void>;
   updateJob: (jobId: string, draft: DraftJob) => Promise<void>;
   deletePostedJob: (jobId: string) => Promise<void>;
@@ -118,7 +122,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [applicationDatesByJobId, setApplicationDatesByJobId] = useState<Record<string, string>>({});
 
-  // Phase 2 Step 1: saved_jobs (hybrid fallback)
+  // Phase 2 Step 1: saved_jobs hydration from Supabase (authoritative)
   const [isHydratingSavedJobs, setIsHydratingSavedJobs] = useState(false);
   const [savedJobsError, setSavedJobsError] = useState<string | null>(null);
 
@@ -127,16 +131,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [jobsError, setJobsError] = useState<string | null>(null);
 
 
-  function isUuidLike(value: string) {
-    // v4/v1-ish UUID detection (best-effort for job.id bridge)
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      value
-    );
-  }
+  // Job ids are expected to be UUIDs end-to-end (public.jobs.id + FK columns).
+  // Removed best-effort UUID detection to avoid legacy non-UUID fallbacks.
 
   useEffect(() => {
-    // Phase 1 + Phase 2 Step 1: restore non-auth MVP state from AsyncStorage,
-    // then hydrate `user` and saved_jobs (UUID ids from Supabase; non-UUID from AsyncStorage).
+    // Phase 1: restore non-auth MVP state from AsyncStorage (offline cache only),
+    // then hydrate `user` and Supabase authoritative saved/applications state.
     void loadFromStorage();
   }, []);
 
@@ -144,26 +144,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const [
         userData,
-        saved,
-        applied,
         posted,
-        statuses,
-        appliedAt,
       ] = await Promise.all([
         AsyncStorage.getItem("@rozgaar_user"),
-        AsyncStorage.getItem("@rozgaar_saved"),
-        AsyncStorage.getItem("@rozgaar_applied"),
         AsyncStorage.getItem("@rozgaar_posted"),
-        AsyncStorage.getItem("@rozgaar_statuses"),
-        AsyncStorage.getItem("@rozgaar_applied_at"),
       ]);
 
-      // Restore non-auth CRUD state from AsyncStorage
-      if (saved) setSavedJobIds(JSON.parse(saved));
-      if (applied) setAppliedJobIds(JSON.parse(applied));
+      // Restore non-auth CRUD state from AsyncStorage (offline cache only)
       if (posted) setPostedJobs(JSON.parse(posted));
-      if (statuses) setJobStatuses(JSON.parse(statuses));
-      if (appliedAt) setApplicationDatesByJobId(JSON.parse(appliedAt));
 
       // Auth-aware user restore (fallback)
       if (userData) setUser(JSON.parse(userData));
@@ -176,23 +164,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Phase 2 Step 4: hydrate jobs from Supabase
-      // We do this before saved_jobs hydration to ensure applicant/saved counters can match job ids.
+      // We do this before saved/applications hydration to ensure applicant/saved counters can match job ids.
       setIsHydratingJobs(true);
       setJobsError(null);
       try {
         const { data: supaJobs, error } = await supabase
           .from("jobs")
-          .select("id, employer_id, title, description, location, job_type, experience_level, salary_min, salary_max, currency, is_active, created_at, is_urgent, is_verified, is_trusted")
+          .select(
+            "id, employer_id, title, description, location, job_type, experience_level, salary_min, salary_max, currency, is_active, created_at, is_urgent, is_verified, is_trusted"
+          )
           .eq("is_active", true);
-
 
         if (error) {
           setJobsError(error.message);
         } else if (supaJobs && Array.isArray(supaJobs)) {
           const mapped: Job[] = supaJobs
             .map((j: any) => {
-              const salaryMin = typeof j.salary_min === "number" ? j.salary_min : j.salary_min ? Number(j.salary_min) : 0;
-              const salaryMax = typeof j.salary_max === "number" ? j.salary_max : j.salary_max ? Number(j.salary_max) : 0;
+              const salaryMin =
+                typeof j.salary_min === "number"
+                  ? j.salary_min
+                  : j.salary_min
+                    ? Number(j.salary_min)
+                    : 0;
+              const salaryMax =
+                typeof j.salary_max === "number"
+                  ? j.salary_max
+                  : j.salary_max
+                    ? Number(j.salary_max)
+                    : 0;
 
               const initials = (j.company_name ?? "CO")
                 .split(" ")
@@ -208,7 +207,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 logoInitials: initials || "CO",
                 logoColor: "#2563EB",
                 category: "Technical" as any,
-                salary: `₹${Number.isFinite(salaryMin) ? salaryMin.toLocaleString("en-IN") : "0"} - ₹${Number.isFinite(salaryMax) ? salaryMax.toLocaleString("en-IN") : "0"}`,
+                salary: `₹${
+                  Number.isFinite(salaryMin) ? salaryMin.toLocaleString("en-IN") : "0"
+                } - ₹${
+                  Number.isFinite(salaryMax) ? salaryMax.toLocaleString("en-IN") : "0"
+                }`,
                 salaryMin: salaryMin || 0,
                 salaryMax: salaryMax || 0,
                 location: j.location ?? "Rohini",
@@ -217,7 +220,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 isVerified: Boolean(j.is_verified),
                 isTrusted: Boolean(j.is_trusted),
                 isUrgent: Boolean(j.is_urgent),
-                postedTime: new Date(j.created_at ?? Date.now()).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }) + " ago",
+                postedTime:
+                  new Date(j.created_at ?? Date.now()).toLocaleDateString(
+                    "en-IN",
+                    { day: "2-digit", month: "short" }
+                  ) + " ago",
 
                 whatsappNumber: "",
                 applicants: 0,
@@ -226,8 +233,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 isNegotiable: false,
                 description: j.description ?? "",
                 requirements: [],
-                lat: (LOCALITY_COORDS[j.location]?.lat ?? LOCALITY_COORDS["Rohini"].lat) as number,
-                lng: (LOCALITY_COORDS[j.location]?.lng ?? LOCALITY_COORDS["Rohini"].lng) as number,
+                lat: (LOCALITY_COORDS[j.location]?.lat ??
+                  LOCALITY_COORDS["Rohini"].lat) as number,
+                lng: (LOCALITY_COORDS[j.location]?.lng ??
+                  LOCALITY_COORDS["Rohini"].lng) as number,
               } as Job;
             })
             .filter((x) => x && typeof x.id === "string");
@@ -246,11 +255,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setIsHydratingJobs(false);
       }
 
-      // Phase 2 Step 1: hydrate saved jobs from Supabase for UUID ids.
-      // We intentionally keep non-UUID job ids from AsyncStorage for backward compatibility.
+      // Phase 2 Step 1: hydrate saved jobs from Supabase (authoritative)
+      // Phase 2 Step 2: hydrate applications from Supabase (authoritative)
       setIsHydratingSavedJobs(true);
       setSavedJobsError(null);
-
 
       const sessionUserId = await (async () => {
         try {
@@ -261,25 +269,71 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       })();
 
-
       if (sessionUserId) {
-        const { data: rows, error } = await supabase
+        // Supabase authoritative saved_jobs
+        const { data: savedRows, error: savedError } = await supabase
           .from("saved_jobs")
           .select("job_id")
           .eq("seeker_id", sessionUserId);
 
-        if (error) {
-          setSavedJobsError(error.message);
-        } else if (rows) {
-          const uuidIds = rows.map((r: any) => r.job_id).filter((id: any) => typeof id === "string");
+        if (savedError) {
+          setSavedJobsError(savedError.message);
+        } else if (savedRows) {
+          const uuidIds = savedRows
+            .map((r: any) => r.job_id)
+            .filter((id: any) => typeof id === "string");
+          setSavedJobIds(uuidIds);
+        }
 
-          // Merge: keep existing non-UUID saved ids from AsyncStorage,
-          // but replace UUID saved ids with Supabase authoritative set.
-          setSavedJobIds((prev) => {
-            const nonUuid = prev.filter((id) => !isUuidLike(id));
-            const merged = Array.from(new Set([...nonUuid, ...uuidIds]));
-            return merged;
-          });
+        // Supabase authoritative applications (public.applications)
+        const { data: appRows, error: appError } = await supabase
+          .from("applications")
+          .select("job_id, status, applied_at")
+          .eq("applicant_id", sessionUserId);
+
+        if (appError) {
+          // Non-blocking: saved jobs still usable; applications will re-sync next app start.
+          setSavedJobsError((prev) => prev ?? appError.message);
+        } else if (appRows && Array.isArray(appRows)) {
+          const ids: string[] = [];
+          const statuses: Record<
+            string,
+            "applied" | "viewed" | "shortlisted" | "rejected"
+          > = {};
+          const dates: Record<string, string> = {};
+
+          for (const r of (appRows as any[])) {
+            const jobId = r?.job_id;
+            const status = r?.status;
+
+            if (typeof jobId !== "string") continue;
+
+            // Map status values coming from DB into our UI union.
+            const mappedStatus =
+              status === "applied" ||
+              status === "viewed" ||
+              status === "shortlisted" ||
+              status === "rejected"
+                ? status
+                : null;
+
+            if (!mappedStatus) continue;
+
+            ids.push(jobId);
+            statuses[jobId] = mappedStatus;
+
+            const appliedAt = r?.applied_at;
+            if (typeof appliedAt === "string" && appliedAt) {
+              dates[jobId] = appliedAt;
+            } else {
+              dates[jobId] = new Date().toISOString();
+            }
+          }
+
+          // De-dupe ids
+          setAppliedJobIds(Array.from(new Set(ids)));
+          setJobStatuses(statuses);
+          setApplicationDatesByJobId(dates);
         }
       }
     } catch (_) {}
@@ -328,21 +382,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setUser(DEFAULT_USER);
 
-    // Clear user-specific persisted data on logout so a new user starts fresh
+    // Clear in-memory state
     setSavedJobIds([]);
     setAppliedJobIds([]);
     setPostedJobs([]);
     setJobStatuses({});
     setApplicationDatesByJobId({});
 
-    await Promise.all([
-      AsyncStorage.removeItem("@rozgaar_user"),
-      AsyncStorage.removeItem("@rozgaar_saved"),
-      AsyncStorage.removeItem("@rozgaar_applied"),
-      AsyncStorage.removeItem("@rozgaar_posted"),
-      AsyncStorage.removeItem("@rozgaar_statuses"),
-      AsyncStorage.removeItem("@rozgaar_applied_at"),
-    ]);
+    // AsyncStorage: user + posted are treated as non-authoritative offline cache.
+    await Promise.all([AsyncStorage.removeItem("@rozgaar_user"), AsyncStorage.removeItem("@rozgaar_posted")]);
   }
 
 
@@ -353,42 +401,150 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem("@rozgaar_user", JSON.stringify(updated));
   }
 
+  function getResumeObjectPath(params: { userId: string; applicationId: string; fileName: string }) {
+    // Must align with lib/db/sql/007_resume_storage_bucket.sql
+    // Path convention: resumes/{user_id}/{application_id}/{filename}
+    return `resumes/${params.userId}/${params.applicationId}/${params.fileName}`;
+  }
+
+  async function getCurrentUserId() {
+    const sessionRes = await supabase.auth.getSession();
+    return sessionRes?.data?.session?.user?.id ?? null;
+  }
+
+  async function uploadResumeFromDevice(params: { file: { uri: string; name?: string } }) {
+    const currentUserId = await getCurrentUserId();
+    if (!currentUserId) throw new Error("Not authenticated");
+
+    // Storage policies expect:
+    //   resumes/{user_id}/{application_id}/{filename}
+    // For profile resume we still need a value in segment 2.
+    // We use a stable synthetic uuid-like id to keep path segment [2] uuid-cast compatible.
+    const syntheticApplicationId = `00000000-0000-4000-8000-000000000000`;
+
+    const fileName = params.file.name || "resume.pdf";
+    const objectPath = getResumeObjectPath({
+      userId: currentUserId,
+      applicationId: syntheticApplicationId,
+      fileName,
+    });
+
+    const bucket = supabase.storage.from("resumes");
+
+    const relativePath = objectPath.replace(`resumes/${currentUserId}/`, "");
+
+    // Replace: remove if present, then upload.
+    try {
+      await bucket.remove([relativePath]);
+    } catch {
+      // ignore missing object
+    }
+
+    const res = await bucket.upload(
+      relativePath,
+      // @ts-expect-error expo FileSystem uri is supported by RN storage adapters
+      { uri: params.file.uri },
+      { contentType: "application/pdf", upsert: true }
+    );
+    if (res.error) throw res.error;
+
+    const { data: urlData } = bucket.getPublicUrl(relativePath);
+
+    // Persist resume_path + resume_url to public.profiles (authoritative).
+    const { error } = await supabase.from("profiles").update({
+      resume_path: objectPath,
+      resume_url: urlData.publicUrl ?? null,
+      resume_uploaded: true,
+    });
+    if (error) throw error;
+
+    // Update in-memory + AsyncStorage cache.
+    setUser((prev) => {
+      const next = {
+        ...prev,
+        resumeUploaded: true,
+        resumeName: fileName,
+        // Our UI uses resumeUri as "openable url"
+        resumeUri: urlData.publicUrl ?? "",
+      };
+      next.profileScore = computeScore(next);
+      return next;
+    });
+  }
+
+  async function deleteResumeFromStorage() {
+    const currentUserId = await getCurrentUserId();
+    if (!currentUserId) throw new Error("Not authenticated");
+
+    // Fetch authoritative resume_path from profiles.
+    const { data: profileRow, error: profileErr } = await supabase
+      .from("profiles")
+      .select("resume_path")
+      .eq("id", currentUserId)
+      .maybeSingle();
+
+    if (profileErr) throw profileErr;
+
+    const resumePathFromDb = (profileRow?.resume_path as string | null) ?? null;
+
+    if (!resumePathFromDb) {
+      const { error: updError } = await supabase.from("profiles").update({
+        resume_path: null,
+        resume_url: null,
+        resume_uploaded: false,
+      });
+      if (updError) throw updError;
+
+      setUser((prev) => {
+        const next = { ...prev, resumeUploaded: false, resumeName: "", resumeUri: "" };
+        next.profileScore = computeScore(next);
+        return next;
+      });
+      return;
+    }
+
+    const bucket = supabase.storage.from("resumes");
+
+    // Convert absolute path "resumes/{userId}/{appId}/{file}" to bucket-relative:
+    const relativePath = resumePathFromDb.replace(`resumes/${currentUserId}/`, "");
+
+    const { error: rmError } = await bucket.remove([relativePath]);
+    if (rmError) throw rmError;
+
+    // Clear resume fields from profiles.
+    const { error: updError } = await supabase.from("profiles").update({
+      resume_path: null,
+      resume_url: null,
+      resume_uploaded: false,
+    });
+    if (updError) throw updError;
+
+    setUser((prev) => {
+      const next = { ...prev, resumeUploaded: false, resumeName: "", resumeUri: "" };
+      next.profileScore = computeScore(next);
+      return next;
+    });
+  }
+
+  async function openResume() {
+    if (!user.resumeUri) throw new Error("No resume available");
+    // UI will call Linking.openURL; context just provides URL.
+    return user.resumeUri;
+  }
+
   async function toggleSaveJob(jobId: string) {
     const isSaved = savedJobIds.includes(jobId);
 
-    // Hybrid bridge:
-    // - UUID job ids persist to Supabase saved_jobs
-    // - non-UUID job ids stay in AsyncStorage for backward compatibility
-    if (!isUuidLike(jobId)) {
-      console.log(`[saved_jobs-migration] non-UUID jobId '${jobId}' -> AsyncStorage fallback`);
-
-      const next = isSaved
-        ? savedJobIds.filter((id) => id !== jobId)
-        : [...savedJobIds, jobId];
-      setSavedJobIds(next);
-      await AsyncStorage.setItem("@rozgaar_saved", JSON.stringify(next));
-      return;
-    }
-
-    // UUID path: require an authenticated user session
-    const sessionRes = await supabase.auth.getSession();
-    const userId = sessionRes?.data?.session?.user?.id;
-
-    if (!userId) {
-      // Not authenticated; keep existing behavior: optimistic local change.
-      const next = isSaved
-        ? savedJobIds.filter((id) => id !== jobId)
-        : [...savedJobIds, jobId];
-      setSavedJobIds(next);
-      await AsyncStorage.setItem("@rozgaar_saved", JSON.stringify(next));
-      return;
-    }
-
-    // Optimistic update
+    // Optimistic UI update (in-memory only)
     const optimisticNext = isSaved
       ? savedJobIds.filter((id) => id !== jobId)
       : [...savedJobIds, jobId];
     setSavedJobIds(optimisticNext);
+
+    const sessionRes = await supabase.auth.getSession();
+    const userId = sessionRes?.data?.session?.user?.id;
+
+    if (!userId) return;
 
     try {
       if (!isSaved) {
@@ -405,18 +561,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           .eq("job_id", jobId);
         if (error) throw error;
       }
-
-      // Keep AsyncStorage in sync as a bridge (UUID ids will also exist in memory via Supabase hydrate)
-      await AsyncStorage.setItem("@rozgaar_saved", JSON.stringify(optimisticNext));
     } catch (e: any) {
-      console.log(`[saved_jobs-migration] Supabase toggle failed: jobId='${jobId}', userId='${userId}'.`, e);
+      console.log(
+        `[saved_jobs] Supabase toggle failed: jobId='${jobId}', userId='${userId}'.`,
+        e
+      );
       // Rollback optimistic update
-      const rollback = isSaved
-        ? [...savedJobIds]
-        : savedJobIds.filter((id) => id !== jobId);
-      // The above rollback uses captured state; safer approach would track previous, but we keep it minimal here.
       setSavedJobIds(savedJobIds);
-      await AsyncStorage.setItem("@rozgaar_saved", JSON.stringify(savedJobIds));
       setSavedJobsError(e?.message ?? "Failed to toggle saved job");
     }
   }
@@ -425,24 +576,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   async function applyToJob(jobId: string) {
     if (appliedJobIds.includes(jobId)) return;
 
-    // Hybrid: keep UI behavior (AsyncStorage applied list + applicant count)
-    // but also persist to Supabase applications for UUID-like job ids.
-    const isUuid = isUuidLike(jobId);
-
-    // Optimistic update (UI behavior stays identical)
+    // Optimistic UI update (in-memory only)
     const next = [...appliedJobIds, jobId];
     setAppliedJobIds(next);
-    await AsyncStorage.setItem("@rozgaar_applied", JSON.stringify(next));
 
-    // Track application timestamp (needed for employer applicants MVP)
+    // Track application timestamp
     const appliedAtNext: Record<string, string> = {
       ...(applicationDatesByJobId ?? {}),
       [jobId]: new Date().toISOString(),
     };
     setApplicationDatesByJobId(appliedAtNext);
-    await AsyncStorage.setItem("@rozgaar_applied_at", JSON.stringify(appliedAtNext));
 
-    // Increment applicant count for the job (Phase 1 behavior)
+    // Increment applicant count for the job (offline cache only)
     const jobIndex = postedJobs.findIndex((j) => j.id === jobId);
     if (jobIndex !== -1) {
       const updatedJobs = [...postedJobs];
@@ -454,107 +599,74 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await AsyncStorage.setItem("@rozgaar_posted", JSON.stringify(updatedJobs));
     }
 
-    if (!isUuid) {
-      console.log(`[applications-migration] non-UUID jobId '${jobId}' -> skipping Supabase applications persistence (Phase 2 bridge)`);
-      return;
-    }
-
-    // Persist to Supabase (public.applications via RLS)
     const sessionRes = await supabase.auth.getSession();
     const userId = sessionRes?.data?.session?.user?.id;
 
-    if (!userId) {
-      // Keep existing behavior: optimistic UI already updated.
-      console.log(`[applications-migration] No auth session; skipping Supabase applications persistence for jobId='${jobId}'`);
-      return;
-    }
-
-    try {
-      // Ensure we don't duplicate: (job_id, applicant_id) is unique
-      const { error } = await supabase
-        .from("applications")
-        .insert({
-          job_id: jobId,
-          applicant_id: userId,
-          applicant_name: user.name || null,
-          phone: user.phone || null,
-          status: "applied",
-          applied_at: appliedAtNext[jobId] ? new Date(appliedAtNext[jobId]).toISOString() : undefined,
-        });
-
-
-      if (error) {
-        // Unique violations should be non-fatal for idempotency.
-        console.log(`[applications-migration] Supabase insert failed for jobId='${jobId}', applicant='${userId}'`, error);
-      }
-    } catch (e) {
-      console.log(`[applications-migration] Supabase persistence threw for jobId='${jobId}', applicant='${userId}'`, e);
-    }
-  }
-
-
-  async function setJobStatus(jobId: string, status: "applied" | "viewed" | "shortlisted" | "rejected") {
-    const updated = { ...jobStatuses, [jobId]: status };
-
-    // Optimistic UI/state update (backward compatible)
-    setJobStatuses(updated);
-    await AsyncStorage.setItem("@rozgaar_statuses", JSON.stringify(updated));
-
-    // Step 3: create notification rows only for UUID-compatible job ids.
-    if (!isUuidLike(jobId)) return;
-
-    const sessionRes = await supabase.auth.getSession();
-    const userId = sessionRes?.data?.session?.user?.id;
     if (!userId) return;
 
-    // Map UI status => notifications.type constraint values
-    const typeMap: Record<string, string> = {
-      viewed: "application_viewed",
-      shortlisted: "application_shortlisted",
-      rejected: "application_rejected",
-      // 'applied' is intentionally not mapped because DB constraint list doesn't include it yet.
-      applied: "application_viewed",
-    };
-
-    const notifType = typeMap[status];
-    if (!notifType) return;
-
-    const titleByStatus: Record<string, string> = {
-      application_viewed: "Employer viewed your application",
-      application_shortlisted: "You were shortlisted",
-      application_rejected: "Application rejected",
-      application_hired: "You were hired",
-    };
-
-    const bodyByStatus: Record<string, string> = {
-      application_viewed: "The employer has opened your application.",
-      application_shortlisted: "The employer shortlisted your application.",
-      application_rejected: "The employer rejected your application.",
-      application_hired: "Congratulations! You were hired.",
-    };
-
-    // Best-effort: avoid duplicates (notifications table has no unique constraint in your SQL).
-    // We rely on insert idempotency at app level by best-effort mapping only.
     try {
-      const job = postedJobs.find((j) => j.id === jobId) ?? null;
-
-      const { error } = await supabase.from("notifications").insert({
-        user_id: userId,
-        type: notifType,
-        title: titleByStatus[notifType] ?? "Application update",
-        body: bodyByStatus[notifType] ?? "Your application status has changed.",
+      const { error } = await supabase.from("applications").insert({
         job_id: jobId,
-        application_id: null,
-        is_read: false,
+        applicant_id: userId,
+        applicant_name: user.name || null,
+        phone: user.phone || null,
+        status: "applied",
+        applied_at: appliedAtNext[jobId]
+          ? new Date(appliedAtNext[jobId]).toISOString()
+          : undefined,
       });
 
       if (error) {
-        console.log(`[notifications-migration] failed to insert notification for jobId='${jobId}' status='${status}'`, error);
+        // Unique violations should be non-fatal for idempotency.
+        console.log(
+          `[applications] Supabase insert failed for jobId='${jobId}', applicant='${userId}'`,
+          error
+        );
+      } else {
+        setJobStatuses((prev) => ({ ...prev, [jobId]: "applied" }));
       }
     } catch (e) {
-      console.log(`[notifications-migration] insert threw for jobId='${jobId}' status='${status}'`, e);
+      console.log(
+        `[applications] Supabase persistence threw for jobId='${jobId}', applicant='${userId}'`,
+        e
+      );
     }
   }
+
+
+  async function setJobStatus(
+    jobId: string,
+    status: "applied" | "viewed" | "shortlisted" | "rejected"
+  ) {
+    // UI compatibility layer only.
+    // Removed legacy job-id UUID heuristics and removed DB notification insertion fallback.
+    // Notifications are created by employer-driven public.applications workflow (and/or DB triggers).
+    const updated = { ...jobStatuses, [jobId]: status };
+    setJobStatuses(updated);
+  }
+
+  async function updateApplicationStatus(params: {
+    jobId: string;
+    applicantId: string;
+    status: "viewed" | "shortlisted" | "rejected";
+  }) {
+    const { jobId, applicantId, status } = params;
+
+    const sessionRes = await supabase.auth.getSession();
+    const employerUserId = sessionRes?.data?.session?.user?.id;
+    if (!employerUserId) throw new Error("Not authenticated");
+
+    const { error } = await supabase
+      .from("applications")
+      .update({
+        status,
+      })
+      .eq("job_id", jobId)
+      .eq("applicant_id", applicantId);
+
+    if (error) throw error;
+  }
+
 
 
   async function postJob(draft: DraftJob) {
@@ -739,10 +851,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         updateProfile,
+        uploadResumeFromDevice,
+        deleteResumeFromStorage,
+        openResume,
         toggleSaveJob,
         applyToJob,
         setJobStatus,
+        updateApplicationStatus,
         postJob,
+
         updateJob,
         deletePostedJob,
         isJobSaved,

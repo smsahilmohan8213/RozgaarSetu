@@ -45,7 +45,7 @@ export async function loadSupabaseProfileFromSession() {
     // Load profile row
     const { data: profileRow, error: profileError } = await supabase
       .from("profiles")
-      .select("id, full_name, phone, role")
+      .select("id, full_name, phone, role, resume_path, resume_url")
       .eq("id", userId)
       .maybeSingle();
 
@@ -55,6 +55,9 @@ export async function loadSupabaseProfileFromSession() {
     }
 
     const role = (profileRow.role as UserRole) ?? null;
+
+    const resumePath = (profileRow.resume_path as string | null) ?? null;
+    const resumeUrl = (profileRow.resume_url as string | null) ?? null;
 
     const next: UserProfile = {
       ...DEFAULT_USER,
@@ -68,9 +71,17 @@ export async function loadSupabaseProfileFromSession() {
       experience: DEFAULT_USER.experience,
       education: DEFAULT_USER.education,
       bio: DEFAULT_USER.bio,
-      resumeUploaded: DEFAULT_USER.resumeUploaded,
-      resumeName: DEFAULT_USER.resumeName,
-      resumeUri: DEFAULT_USER.resumeUri,
+      resumeUploaded: Boolean(resumeUrl ?? resumePath),
+      resumeName: (() => {
+        if (resumePath) {
+          const parts = resumePath.split("/");
+          const last = parts[parts.length - 1];
+          return last || DEFAULT_USER.resumeName;
+        }
+        return "resume.pdf";
+      })(),
+      // UI uses resumeUri as an openable URL.
+      resumeUri: resumeUrl ?? "",
       profileScore: DEFAULT_USER.profileScore,
     };
 

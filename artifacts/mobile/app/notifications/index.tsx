@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Platform,
@@ -11,8 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useApp } from "@/context/AppContext";
-import { JOBS } from "@/data/jobs";
+import { supabase } from "@/lib/supabaseClient";
 
 type NotifType = "job_alert" | "application" | "employer" | "system";
 
@@ -26,89 +25,40 @@ interface Notification {
   jobId?: string;
 }
 
-function generateNotifications(appliedIds: string[], savedIds: string[]): Notification[] {
-  const base: Notification[] = [
-    {
-      id: "n1",
-      type: "job_alert",
-      title: "5 new jobs near you in Rohini",
-      body: "Delivery Executive, Office Assistant, Telecaller and more jobs were posted in the last 2 hours.",
-      time: "15 min ago",
-      read: false,
-    },
-    {
-      id: "n2",
-      type: "system",
-      title: "Welcome to RozgaarSetu!",
-      body: "India's fastest hyperlocal job platform. Complete your profile to get better matches.",
-      time: "Just now",
-      read: false,
-    },
-    {
-      id: "n3",
-      type: "job_alert",
-      title: "Urgent hiring: 3 jobs in Pitampura",
-      body: "Employers in Pitampura are urgently hiring. Apply now before positions are filled.",
-      time: "1 hour ago",
-      read: false,
-    },
-    {
-      id: "n4",
-      type: "system",
-      title: "Profile incomplete",
-      body: "Add your skills and education to improve your profile score and get more matches.",
-      time: "2 hours ago",
-      read: true,
-    },
-    {
-      id: "n5",
-      type: "job_alert",
-      title: "New delivery jobs available",
-      body: "Zomato, Swiggy, and Blinkit are hiring in your area. Earn ₹20,000–₹40,000/month.",
-      time: "3 hours ago",
-      read: true,
-    },
-    {
-      id: "n6",
-      type: "system",
-      title: "RozgaarSetu tip",
-      body: "Jobs posted today are 3x more likely to respond. Check the latest listings!",
-      time: "5 hours ago",
-      read: true,
-    },
-  ];
+function formatRelativeTime(iso: string | null | undefined) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const diffMs = Date.now() - d.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin <= 0) return "Just now";
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? "" : "s"} ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay} day${diffDay === 1 ? "" : "s"} ago`;
+}
 
-  const appNotifs: Notification[] = appliedIds.slice(0, 2).map((jobId, i) => {
-    const job = JOBS.find((j) => j.id === jobId);
-    return {
-      id: `app_${jobId}`,
-      type: "application" as NotifType,
-      title: "Application under review",
-      body: job
-        ? `Your application for ${job.title} at ${job.company} has been received. Employer will respond within 1–3 days.`
-        : "Your application has been received.",
-      time: i === 0 ? "30 min ago" : "2 hours ago",
-      read: false,
-      jobId,
-    };
-  });
+function normalizeDbTypeToUiType(dbType: string | null | undefined): NotifType {
+  const t = (dbType ?? "").trim();
+  const lower = t.toLowerCase();
 
-  const savedNotifs: Notification[] = savedIds.slice(0, 1).map((jobId) => {
-    const job = JOBS.find((j) => j.id === jobId);
-    return {
-      id: `saved_${jobId}`,
-      type: "employer" as NotifType,
-      title: "Saved job expiring soon",
-      body: job
-        ? `${job.company} is still hiring for ${job.title}. Don't wait — apply before the position is filled!`
-        : "One of your saved jobs may close soon.",
-      time: "4 hours ago",
-      read: true,
-      jobId,
-    };
-  });
+  // Explicit mappings (preferred, per requirement)
+  if (
+    lower === "application_viewed" ||
+    lower === "application_shortlisted" ||
+    lower === "application_rejected" ||
+    lower === "application_hired"
+  ) {
+    return "application";
+  }
 
-  return [...appNotifs, ...base.slice(0, 3), ...savedNotifs, ...base.slice(3)];
+  // Best-effort fallback to existing UI types
+  if (lower === "job_alert" || lower === "jobalert") return "job_alert";
+  if (lower === "employer") return "employer";
+  if (lower === "system") return "system";
+
+  return "system";
 }
 
 const TYPE_META: Record<NotifType, { icon: string; color: string; bg: string }> = {
@@ -121,27 +71,115 @@ const TYPE_META: Record<NotifType, { icon: string; color: string; bg: string }> 
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { appliedJobIds, savedJobIds } = useApp();
   const isWeb = Platform.OS === "web";
 
-  const [notifications, setNotifications] = useState<Notification[]>(() =>
-    generateNotifications(appliedJobIds, savedJobIds)
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isHydrating, setIsHydrating] = useState(false);
+
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !n.read).length,
+    [notifications]
   );
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  async function hydrateNotifications() {
+    setIsHydrating(true);
+    try {
+      const sessionRes = await supabase.auth.getSession();
+      const userId = sessionRes?.data?.session?.user?.id;
+      if (!userId) {
+        setNotifications([]);
+        return;
+      }
 
-  function markAllRead() {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("id,type,title,body,job_id,application_id,is_read,created_at,read_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        // Non-blocking: keep empty list
+        console.log("[notifications] hydrate failed", error);
+        setNotifications([]);
+        return;
+      }
+
+      const mapped: Record<string, Notification> = (Array.isArray(data) ? data : [])
+        // Best-effort de-dupe in-memory (no schema changes)
+        .reduce<Record<string, Notification>>((acc, row: any) => {
+          const uiType = normalizeDbTypeToUiType(row?.type);
+          const jobId = (row?.job_id as string | null) ?? undefined;
+
+          // Dedupe key attempts to prevent the most common duplicates.
+          // Uses row-level content context; no schema changes required.
+          const dedupeKey = [
+            row?.type ?? "",
+            jobId ?? "",
+            row?.application_id ?? "",
+            row?.title ?? "",
+            row?.body ?? "",
+            uiType,
+          ].join("|");
+
+          if (!acc[dedupeKey]) {
+            const createdAt = row?.created_at ?? null;
+            const rel = formatRelativeTime(createdAt);
+            acc[dedupeKey] = {
+              id: row?.id as string,
+              type: uiType,
+              title: (row?.title as string | null) ?? "",
+              body: (row?.body as string | null) ?? "",
+              time:
+                rel ||
+                formatRelativeTime(row?.read_at ?? row?.created_at),
+              read: Boolean(row?.is_read),
+              jobId,
+            };
+          }
+          return acc;
+        }, {});
+
+      setNotifications(Object.values(mapped));
+    } finally {
+      setIsHydrating(false);
+    }
   }
 
-  function markRead(id: string) {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+  useEffect(() => {
+    void hydrateNotifications();
+  }, []);
+
+  async function markAllRead() {
+    // Optimistic UI
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+
+    const sessionRes = await supabase.auth.getSession();
+    const userId = sessionRes?.data?.session?.user?.id;
+    if (!userId) return;
+
+    const nowIso = new Date().toISOString();
+
+    // Exact persistence query
+    await supabase
+      .from("notifications")
+      .update({ is_read: true, read_at: nowIso })
+      .eq("user_id", userId)
+      .eq("is_read", false);
+  }
+
+  async function markRead(id: string) {
+    // Optimistic UI
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+
+    const nowIso = new Date().toISOString();
+    await supabase
+      .from("notifications")
+      .update({ is_read: true, read_at: nowIso })
+      .eq("id", id);
   }
 
   function handlePress(notif: Notification) {
-    markRead(notif.id);
+    void markRead(notif.id);
     if (notif.jobId) {
       router.push(`/job/${notif.jobId}`);
     }
@@ -156,14 +194,18 @@ export default function NotificationsScreen() {
         activeOpacity={0.8}
       >
         <View style={[styles.iconWrap, { backgroundColor: meta.bg }]}>
-          <Ionicons name={meta.icon as "briefcase"} size={20} color={meta.color} />
+          <Ionicons name={meta.icon as any} size={20} color={meta.color} />
         </View>
         <View style={styles.itemBody}>
           <View style={styles.itemTop}>
-            <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
+            <Text style={styles.itemTitle} numberOfLines={1}>
+              {item.title}
+            </Text>
             {!item.read && <View style={styles.dot} />}
           </View>
-          <Text style={styles.itemText} numberOfLines={2}>{item.body}</Text>
+          <Text style={styles.itemText} numberOfLines={2}>
+            {item.body}
+          </Text>
           <Text style={styles.itemTime}>{item.time}</Text>
         </View>
       </TouchableOpacity>
@@ -178,8 +220,9 @@ export default function NotificationsScreen() {
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Notifications</Text>
-          {unreadCount > 0 && (
-            <Text style={styles.headerSub}>{unreadCount} unread</Text>
+          {unreadCount > 0 && <Text style={styles.headerSub}>{unreadCount} unread</Text>}
+          {isHydrating && unreadCount === 0 && (
+            <Text style={styles.headerSub}>Loading…</Text>
           )}
         </View>
         {unreadCount > 0 && (
