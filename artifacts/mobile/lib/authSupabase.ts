@@ -41,6 +41,11 @@ export async function signInWithPhoneOtpMock(phone: string, role: UserRole): Pro
   }
 
   const email = phoneToDemoEmail(phone);
+  console.log("[auth] signInWithPhoneOtpMock:start", {
+    phone: phone.replace(/\d(?=\d{4})/g, "*"),
+    email,
+    role,
+  });
 
   // We cannot safely derive a password from UI without violating your constraints,
   // so we use a deterministic demo password.
@@ -50,6 +55,11 @@ export async function signInWithPhoneOtpMock(phone: string, role: UserRole): Pro
   const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
     email,
     password,
+  });
+  console.log("[auth] signInWithPhoneOtpMock:signInWithPassword:done", {
+    email,
+    ok: !signInError && Boolean(signInData?.user?.id),
+    error: signInError?.message ?? null,
   });
 
   if (!signInError && signInData?.user?.id) {
@@ -66,6 +76,11 @@ export async function signInWithPhoneOtpMock(phone: string, role: UserRole): Pro
       emailRedirectTo: undefined,
     },
   });
+  console.log("[auth] signInWithPhoneOtpMock:signUp:done", {
+    email,
+    ok: !signUpError,
+    error: signUpError?.message ?? null,
+  });
 
   if (signUpError) {
     throw new Error(`Supabase auth failed. signInError=${signInError?.message ?? "n/a"}, signUpError=${signUpError.message}`);
@@ -74,6 +89,11 @@ export async function signInWithPhoneOtpMock(phone: string, role: UserRole): Pro
   const { data: signInData2, error: signInError2 } = await supabase.auth.signInWithPassword({
     email,
     password,
+  });
+  console.log("[auth] signInWithPhoneOtpMock:secondSignIn:done", {
+    email,
+    ok: !signInError2 && Boolean(signInData2?.user?.id),
+    error: signInError2?.message ?? null,
   });
 
   if (signInError2) {
@@ -97,6 +117,7 @@ export async function ensureProfileRow(
 ) {
   // Ensure auth.uid() == profiles.id (matches SQL policies).
   // Note: jobs/applications/saved_jobs are NOT modified in Phase 1.
+  console.log("[auth] ensureProfileRow:start", { userId, role });
   const { error } = await supabase.from("profiles").upsert(
     {
       id: userId,
@@ -106,6 +127,12 @@ export async function ensureProfileRow(
     },
     { onConflict: "id" }
   );
+
+  console.log("[auth] ensureProfileRow:done", {
+    userId,
+    ok: !error,
+    error: error?.message ?? null,
+  });
 
   if (error) throw error;
 }

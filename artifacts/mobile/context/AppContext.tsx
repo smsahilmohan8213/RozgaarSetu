@@ -352,15 +352,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Supabase auth via Phase-1 architecture.
     // UI OTP remains simulated; we map it to an auth session here.
+    console.log("[auth] login:start", { phone: phone.replace(/\d(?=\d{4})/g, "*"), role });
     const { userId } = await signInWithPhoneOtpMock(phone, role);
+    console.log("[auth] login:signInWithPhoneOtpMock:ok", { userId });
 
     // Ensure profile row exists in Supabase.
     await ensureProfileRow(userId, name, phone, role);
+    console.log("[auth] login:ensureProfileRow:ok", { userId });
 
     // Load authoritative profile from Supabase session.
     // (Jobs/saved/applied stay on AsyncStorage for now.)
     const { loadSupabaseProfileFromSession } = await import("../lib/appSupabaseProfile");
     const loadedUser = await loadSupabaseProfileFromSession();
+    console.log("[auth] login:loadSupabaseProfileFromSession:ok", { userId, loaded: Boolean(loadedUser) });
 
     const newUser = loadedUser ?? {
       ...DEFAULT_USER,

@@ -23,7 +23,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#2563EB"
-      }
+      },
+      "package": "com.rozgaarsetu.app"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -41,6 +42,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "a37623b9-d39a-4f6c-a84f-71be82643b27"
+      }
     }
   }
 }

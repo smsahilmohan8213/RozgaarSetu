@@ -32,10 +32,17 @@ function computeScore(u: UserProfile): number {
 
 export async function loadSupabaseProfileFromSession() {
   try {
+    console.log("[auth] loadSupabaseProfileFromSession:start");
     const {
       data: { session },
       error: sessionError,
     } = await supabase.auth.getSession();
+
+    console.log("[auth] loadSupabaseProfileFromSession:getSession:done", {
+      ok: !sessionError && Boolean(session?.user?.id),
+      error: sessionError?.message ?? null,
+      userId: session?.user?.id ?? null,
+    });
 
     if (sessionError) return;
     if (!session?.user?.id) return;
@@ -48,6 +55,12 @@ export async function loadSupabaseProfileFromSession() {
       .select("id, full_name, phone, role, resume_path, resume_url")
       .eq("id", userId)
       .maybeSingle();
+
+    console.log("[auth] loadSupabaseProfileFromSession:profiles.select:done", {
+      userId,
+      ok: !profileError && Boolean(profileRow),
+      error: profileError?.message ?? null,
+    });
 
     if (profileError || !profileRow) {
       // If profile doesn't exist yet, do nothing here.
@@ -90,7 +103,8 @@ export async function loadSupabaseProfileFromSession() {
     await AsyncStorage.setItem("@rozgaar_user", JSON.stringify(next));
 
     return next;
-  } catch {
+  } catch (error) {
+    console.log("[auth] loadSupabaseProfileFromSession:error", error);
     return;
   }
 }

@@ -68,9 +68,18 @@ export default function AuthScreen() {
   async function handleNameSubmit() {
     if (!name.trim()) return;
     setLoading(true);
-    await login(phone, name, role);
-    setLoading(false);
-    router.replace("/(tabs)");
+    try {
+      await login(phone, name, role);
+      router.replace("/(tabs)");
+    } catch (error: any) {
+      const message =
+        error?.message ??
+        (typeof error === "string" ? error : "Failed to complete onboarding");
+      Alert.alert("Onboarding failed", message);
+      console.log("[auth] handleNameSubmit failed", error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const styles = getStyles(colors);
