@@ -5,17 +5,16 @@ import { supabase } from "@/lib/supabaseClient";
  * Supabase auth integration.
  *
  * Current UI simulates OTP and calls `login(phone, name, role)`.
- * For this Phase 1, production auth is assumed to be Email + Password.
+ * For this MVP/testing phase, we use anonymous auth and then persist the
+ * user-facing identity into `public.profiles`.
  *
  * Constraints:
  * - Do not require real user signup during this phase.
  * - Focus on session handling + architecture.
  *
  * Implementation approach:
- * - We map the simulated phone/name step into a Supabase session using a
- *   deterministic "demo" email + password flow.
- * - If the user already exists in Supabase Auth, we sign in.
- * - If not, we create the user (best-effort) and then sign in.
+ * - Reuse an existing anonymous session when available.
+ * - Otherwise create a new anonymous Supabase Auth session.
  * - After sign-in, we ensure the `profiles` row exists.
  */
 
@@ -23,88 +22,46 @@ export type SupabaseAuthSignInResult = {
   userId: string;
 };
 
-const DEMO_PASSWORD = process.env.EXPO_PUBLIC_SUPABASE_DEMO_PASSWORD ?? "demo-password";
-
-function phoneToDemoEmail(phone: string) {
-  const normalized = phone.replace(/\D+/g, "");
-  // Deterministic demo email per phone.
-  return `phone_${normalized}@rozgaarsetu.local`;
-}
-
 export async function signInWithPhoneOtpMock(phone: string, role: UserRole): Promise<SupabaseAuthSignInResult> {
   // NOTE: Keeping API shape used by earlier UI simulation.
-  // We are intentionally not implementing phone OTP.
-  // Instead, we create/sign-in a user via Email+Password.
+  // We are intentionally not implementing phone OTP here.
+  // Instead, we create/reuse a Supabase anonymous session.
 
   if (!role) {
     throw new Error("Role is required for profile upsert");
   }
 
-  const email = phoneToDemoEmail(phone);
   console.log("[auth] signInWithPhoneOtpMock:start", {
     phone: phone.replace(/\d(?=\d{4})/g, "*"),
-    email,
     role,
   });
 
-  // We cannot safely derive a password from UI without violating your constraints,
-  // so we use a deterministic demo password.
-  const password = DEMO_PASSWORD;
+  const sessionRes = await supabase.auth.getSession();
+  const existingUserId = sessionRes.data.session?.user?.id ?? null;
 
-  // 1) Try sign-in first
-  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  console.log("[auth] signInWithPhoneOtpMock:signInWithPassword:done", {
-    email,
-    ok: !signInError && Boolean(signInData?.user?.id),
-    error: signInError?.message ?? null,
-  });
-
-  if (!signInError && signInData?.user?.id) {
-    return { userId: signInData.user.id };
+  if (existingUserId) {
+    console.log("[auth] signInWithPhoneOtpMock:reuseSession", {
+      userId: existingUserId,
+      isAnonymous: sessionRes.data.session?.user?.is_anonymous ?? null,
+    });
+    return { userId: existingUserId };
   }
 
-  // 2) Best-effort: if user doesn't exist, create then sign-in
-  const { error: signUpError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      // If email verification is enforced, signUp might not create a session.
-      // In that case the subsequent sign-in will still work once the account exists.
-      emailRedirectTo: undefined,
-    },
-  });
-  console.log("[auth] signInWithPhoneOtpMock:signUp:done", {
-    email,
-    ok: !signUpError,
-    error: signUpError?.message ?? null,
+  const { data, error } = await supabase.auth.signInAnonymously();
+  console.log("[auth] signInWithPhoneOtpMock:signInAnonymously:done", {
+    ok: !error && Boolean(data?.user?.id),
+    error: error?.message ?? null,
   });
 
-  if (signUpError) {
-    throw new Error(`Supabase auth failed. signInError=${signInError?.message ?? "n/a"}, signUpError=${signUpError.message}`);
+  if (error) {
+    throw error;
   }
 
-  const { data: signInData2, error: signInError2 } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  console.log("[auth] signInWithPhoneOtpMock:secondSignIn:done", {
-    email,
-    ok: !signInError2 && Boolean(signInData2?.user?.id),
-    error: signInError2?.message ?? null,
-  });
-
-  if (signInError2) {
-    throw signInError2;
+  if (!data?.user?.id) {
+    throw new Error("Supabase anonymous sign-in succeeded but user id missing");
   }
 
-  if (!signInData2?.user?.id) {
-    throw new Error("Supabase sign-in succeeded but user id missing");
-  }
-
-  return { userId: signInData2.user.id };
+  return { userId: data.user.id };
 }
 
 
