@@ -36,7 +36,7 @@ router.post("/signup", async (req, res, next) => {
 
     return res.json({ user: data.user ?? null, message: "Signup initiated" });
   } catch (err) {
-    next(err);
+    return next(err);
   }
 });
 
@@ -69,7 +69,7 @@ router.post("/login", async (req, res, next) => {
 
     return res.json({ user: data.user ?? null, message: "Logged in" });
   } catch (err) {
-    next(err);
+    return next(err);
   }
 });
 

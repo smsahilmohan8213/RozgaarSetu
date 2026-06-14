@@ -58,7 +58,7 @@ export default function ApplyScreen() {
     Linking.openURL(`https://wa.me/91${job!.whatsappNumber}?text=${msg}`);
   }
 
-  const completionPct = user.resumeUploaded ? 80 : user.skills.length > 0 ? 60 : 40;
+  const completionPct = user.profileScore;
 
   return (
     <View style={styles.container}>

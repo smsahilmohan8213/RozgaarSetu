@@ -75,6 +75,12 @@ onlyBuiltDependencies:
   - unrs-resolver
 
 overrides:
+  # Force a single @types/react version across the workspace.
+  # expo-router pulls in @radix-ui/react-tabs which resolves @types/react@19.1.17
+  # into the pnpm store. When lucide-react (typed against 19.1.17) is imported in
+  # mockup-sandbox (which uses 19.2.14), TypeScript errors with "two different types
+  # with this name exist, but they are unrelated" on VoidOrUndefinedOnly.
+  "@types/react": "^19.2.0"
   # replit uses linux-x64 only, we can exclude all other platforms
   "esbuild>@esbuild/darwin-arm64": "-"
   "esbuild>@esbuild/darwin-x64": "-"

@@ -9,6 +9,7 @@ export interface UserProfile {
   skills: string[];
   experience: string;
   education: string;
+  language: string;
   bio: string;
   resumeUploaded: boolean;
   resumeName?: string;

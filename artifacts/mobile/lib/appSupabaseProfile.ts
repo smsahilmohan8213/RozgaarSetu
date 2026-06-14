@@ -12,6 +12,7 @@ const DEFAULT_USER: UserProfile = {
   skills: [],
   experience: "Fresher",
   education: "B.A.",
+  language: "Hindi / English",
   bio: "",
   resumeUploaded: false,
   resumeName: "",
@@ -21,12 +22,20 @@ const DEFAULT_USER: UserProfile = {
 
 function computeScore(u: UserProfile): number {
   let score = 0;
-  if (u.name) score += 20;
-  if (u.phone) score += 15;
-  if (u.education && u.education !== "B.A.") score += 20;
-  if (u.location && u.location !== "Rohini") score += 15;
-  if (u.resumeUploaded) score += 15;
-  if (u.bio && u.bio.length > 10) score += 15;
+  if (u.role === "employer") {
+    if (u.companyName) score += 20;
+    if (u.companyDescription) score += 20;
+    if (u.name) score += 20;
+    if (u.phone) score += 20;
+    if (u.location) score += 20;
+  } else {
+    if (u.name) score += 10;
+    if (u.phone) score += 10;
+    if (u.skills && u.skills.length > 0) score += 20;
+    if (u.experience) score += 20;
+    if (u.education) score += 20;
+    if (u.resumeUploaded) score += 20;
+  }
   return Math.min(score, 100);
 }
 
@@ -83,6 +92,7 @@ export async function loadSupabaseProfileFromSession() {
       skills: DEFAULT_USER.skills,
       experience: DEFAULT_USER.experience,
       education: DEFAULT_USER.education,
+      language: DEFAULT_USER.language,
       bio: DEFAULT_USER.bio,
       resumeUploaded: Boolean(resumeUrl ?? resumePath),
       resumeName: (() => {

@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Alert } from "react-native";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 import type { Job, JobCategory } from "@/data/jobs";
@@ -19,7 +20,10 @@ export interface UserProfile {
   skills: string[];
   experience: string;
   education: string;
+  language: string;
   bio: string;
+  companyName?: string;
+  companyDescription?: string;
   resumeUploaded: boolean;
   resumeName?: string;
   resumeUri?: string;
@@ -80,6 +84,7 @@ const DEFAULT_USER: UserProfile = {
   skills: [],
   experience: "Fresher",
   education: "B.A.",
+  language: "Hindi / English",
   bio: "",
   resumeUploaded: false,
   resumeName: "",
@@ -89,12 +94,20 @@ const DEFAULT_USER: UserProfile = {
 
 function computeScore(u: UserProfile): number {
   let score = 0;
-  if (u.name) score += 20;
-  if (u.phone) score += 15;
-  if (u.education && u.education !== "B.A.") score += 20;
-  if (u.location && u.location !== "Rohini") score += 15;
-  if (u.resumeUploaded) score += 15;
-  if (u.bio && u.bio.length > 10) score += 15;
+  if (u.role === "employer") {
+    if (u.companyName) score += 20;
+    if (u.companyDescription) score += 20;
+    if (u.name) score += 20;
+    if (u.phone) score += 20;
+    if (u.location) score += 20;
+  } else {
+    if (u.name) score += 10;
+    if (u.phone) score += 10;
+    if (u.skills && u.skills.length > 0) score += 20;
+    if (u.experience) score += 20;
+    if (u.education) score += 20;
+    if (u.resumeUploaded) score += 20;
+  }
   return Math.min(score, 100);
 }
 
@@ -154,7 +167,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (posted) setPostedJobs(JSON.parse(posted));
 
       // Auth-aware user restore (fallback)
-      if (userData) setUser(JSON.parse(userData));
+      if (userData) setUser({ ...DEFAULT_USER, ...JSON.parse(userData) });
 
       // Load authoritative profile row if Supabase session exists.
       const { loadSupabaseProfileFromSession } = await import("../lib/appSupabaseProfile");
@@ -580,6 +593,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   async function applyToJob(jobId: string) {
     if (appliedJobIds.includes(jobId)) return;
 
+    // Snapshot pre-optimistic state for rollback on failure.
+    const prevAppliedJobIds = appliedJobIds;
+    const prevApplicationDates = applicationDatesByJobId;
+    const prevPostedJobs = postedJobs;
+
     // Optimistic UI update (in-memory only)
     const next = [...appliedJobIds, jobId];
     setAppliedJobIds(next);
@@ -608,6 +626,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (!userId) return;
 
+    /** Roll back all three optimistic mutations and restore AsyncStorage. */
+    async function rollback() {
+      setAppliedJobIds(prevAppliedJobIds);
+      setApplicationDatesByJobId(prevApplicationDates);
+      setPostedJobs(prevPostedJobs);
+      try {
+        await AsyncStorage.setItem("@rozgaar_posted", JSON.stringify(prevPostedJobs));
+      } catch {
+        // Non-critical: AsyncStorage failure during rollback should not mask the original error.
+      }
+    }
+
     try {
       const { error } = await supabase.from("applications").insert({
         job_id: jobId,
@@ -621,18 +651,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        // Unique violations should be non-fatal for idempotency.
+        // Postgres unique-violation (23505): row already exists — application is valid.
+        // Keep the optimistic UI state; just sync jobStatuses.
+        if ((error as any).code === "23505") {
+          console.log(
+            `[applications] Duplicate application ignored (idempotent) for jobId='${jobId}'`
+          );
+          setJobStatuses((prev) => ({ ...prev, [jobId]: "applied" }));
+          return;
+        }
+
+        // All other errors: rollback and inform the user.
         console.log(
           `[applications] Supabase insert failed for jobId='${jobId}', applicant='${userId}'`,
           error
         );
-      } else {
-        setJobStatuses((prev) => ({ ...prev, [jobId]: "applied" }));
+        await rollback();
+        Alert.alert(
+          "Application Failed",
+          "We couldn't submit your application. Please check your connection and try again."
+        );
+        return;
       }
+
+      setJobStatuses((prev) => ({ ...prev, [jobId]: "applied" }));
     } catch (e) {
       console.log(
         `[applications] Supabase persistence threw for jobId='${jobId}', applicant='${userId}'`,
         e
+      );
+      await rollback();
+      Alert.alert(
+        "Application Failed",
+        "Something went wrong while submitting your application. Please try again."
       );
     }
   }
@@ -811,10 +862,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       postedTime: "Just updated",
     };
 
-    const next = postedJobs.map((j) => (j.id === jobId ? updatedJob : j));
-    setPostedJobs(next);
-    setEditingJobId(null);
-
     // Persist changes to Supabase (RLS should enforce employer ownership)
     const { error } = await supabase
       .from("jobs")
@@ -834,6 +881,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .eq("id", jobId);
 
     if (error) throw error;
+
+    const next = postedJobs.map((j) => (j.id === jobId ? updatedJob : j));
+    setPostedJobs(next);
+    setEditingJobId(null);
   }
 
 

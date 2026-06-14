@@ -39,6 +39,17 @@ const EXPERIENCE_OPTIONS = [
   "3-5 years", "5-7 years", "7-10 years", "10+ years",
 ];
 
+const LANGUAGE_OPTIONS = [
+  "Hindi / English",
+  "Hindi",
+  "English",
+  "Hinglish",
+  "Punjabi",
+  "Bengali",
+  "Tamil",
+  "Marathi",
+];
+
 export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -57,6 +68,9 @@ export default function ProfileScreen() {
     location: user.location,
     education: user.education,
     experience: user.experience,
+    language: user.language,
+    companyName: user.companyName ?? "",
+    companyDescription: user.companyDescription ?? "",
   });
 
   async function handleLogout() {
@@ -165,16 +179,23 @@ export default function ProfileScreen() {
   }
 
   const isEmployer = user.role === "employer";
-  const initials = user.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "?";
+  const nameToUse = isEmployer && user.companyName ? user.companyName : user.name;
+  const initials = nameToUse.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "?";
 
   const score = user.profileScore;
-  const completionItems = [
+  const completionItems = isEmployer ? [
+    { label: "Company name", done: !!user.companyName },
+    { label: "Company description", done: !!user.companyDescription },
+    { label: "Contact person", done: !!user.name },
+    { label: "Phone verified", done: !!user.phone },
+    { label: "Location set", done: !!user.location },
+  ] : [
     { label: "Name set", done: !!user.name },
     { label: "Phone verified", done: !!user.phone },
-    { label: "Skills added", done: user.skills.length > 0 },
-    { label: "Education filled", done: !!user.education && user.education !== "B.A." },
+    { label: "Skills added", done: user.skills && user.skills.length > 0 },
+    { label: "Experience added", done: !!user.experience },
+    { label: "Education filled", done: !!user.education },
     { label: "Resume uploaded", done: user.resumeUploaded },
-    { label: "Bio written", done: user.bio.length > 10 },
   ];
 
   const qrData = encodeURIComponent(
@@ -222,15 +243,13 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        <Text style={styles.heroName}>{user.name}</Text>
-        {user.bio ? (
-          <Text style={styles.heroBio} numberOfLines={2}>{user.bio}</Text>
+        <Text style={styles.heroName}>{isEmployer && user.companyName ? user.companyName : user.name}</Text>
+        {(isEmployer ? user.companyDescription : user.bio) ? (
+          <Text style={styles.heroBio} numberOfLines={2}>{isEmployer ? user.companyDescription : user.bio}</Text>
         ) : (
-          !isEmployer && (
-            <TouchableOpacity onPress={() => setShowEditModal(true)}>
-              <Text style={styles.heroAddBio}>+ Add a short bio</Text>
-            </TouchableOpacity>
-          )
+          <TouchableOpacity onPress={() => setShowEditModal(true)}>
+            <Text style={styles.heroAddBio}>+ Add a short {isEmployer ? "company description" : "bio"}</Text>
+          </TouchableOpacity>
         )}
         <Text style={styles.heroPhone}>+91 {user.phone} · {user.location}</Text>
 
@@ -247,19 +266,26 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {!isEmployer && (
-          <TouchableOpacity
-            style={styles.editProfileBtn}
-            onPress={() => {
-              setEditForm({ name: user.name, bio: user.bio, location: user.location, education: user.education, experience: user.experience });
-              setShowEditModal(true);
-            }}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="pencil" size={14} color="#2563EB" />
-            <Text style={styles.editProfileBtnText}>Edit Profile</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={styles.editProfileBtn}
+          onPress={() => {
+            setEditForm({
+              name: user.name,
+              bio: user.bio,
+              location: user.location,
+              education: user.education,
+              experience: user.experience,
+              language: user.language,
+              companyName: user.companyName ?? "",
+              companyDescription: user.companyDescription ?? "",
+            });
+            setShowEditModal(true);
+          }}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="pencil" size={14} color="#2563EB" />
+          <Text style={styles.editProfileBtnText}>Edit Profile</Text>
+        </TouchableOpacity>
       </LinearGradient>
 
       {/* ── STATS ROW ── */}
@@ -399,7 +425,16 @@ export default function ProfileScreen() {
               </View>
               <TouchableOpacity
                 onPress={() => {
-                  setEditForm({ name: user.name, bio: user.bio, location: user.location, education: user.education, experience: user.experience });
+                  setEditForm({
+                    name: user.name,
+                    bio: user.bio,
+                    location: user.location,
+                    education: user.education,
+                    experience: user.experience,
+                    language: user.language,
+                    companyName: user.companyName ?? "",
+                    companyDescription: user.companyDescription ?? "",
+                  });
                   setShowEditModal(true);
                 }}
                 style={styles.editBtn}
@@ -412,6 +447,7 @@ export default function ProfileScreen() {
             <DetailRow icon="location-outline" label="Preferred Location" value={user.location} />
             <DetailRow icon="school-outline" label="Education" value={user.education} />
             <DetailRow icon="briefcase-outline" label="Experience" value={user.experience} />
+            <DetailRow icon="language-outline" label="Language" value={user.language} />
             <DetailRow
               icon="document-text-outline"
               label="Bio"
@@ -638,19 +674,38 @@ export default function ProfileScreen() {
           </View>
 
           <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+            {isEmployer && (
+              <>
+                <FormField
+                  label="Company Name"
+                  value={editForm.companyName}
+                  onChangeText={(v) => setEditForm((p) => ({ ...p, companyName: v }))}
+                  placeholder="Your company name"
+                />
+                <FormField
+                  label="Company Description"
+                  value={editForm.companyDescription}
+                  onChangeText={(v) => setEditForm((p) => ({ ...p, companyDescription: v }))}
+                  placeholder="What does your company do?"
+                  multiline
+                />
+              </>
+            )}
             <FormField
-              label="Full Name"
+              label={isEmployer ? "Contact Person Name" : "Full Name"}
               value={editForm.name}
               onChangeText={(v) => setEditForm((p) => ({ ...p, name: v }))}
               placeholder="Your name"
             />
-            <FormField
-              label="Short Bio"
-              value={editForm.bio}
-              onChangeText={(v) => setEditForm((p) => ({ ...p, bio: v }))}
-              placeholder="e.g. Experienced delivery executive based in Rohini..."
-              multiline
-            />
+            {!isEmployer && (
+              <FormField
+                label="Short Bio"
+                value={editForm.bio}
+                onChangeText={(v) => setEditForm((p) => ({ ...p, bio: v }))}
+                placeholder="e.g. Experienced delivery executive based in Rohini..."
+                multiline
+              />
+            )}
 
             <Text style={styles.formLabel}>Preferred Location</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.optionScroll}>
@@ -667,35 +722,54 @@ export default function ProfileScreen() {
               ))}
             </ScrollView>
 
-            <Text style={styles.formLabel}>Education</Text>
-            <View style={styles.optionGrid}>
-              {EDUCATION_OPTIONS.map((edu) => (
-                <TouchableOpacity
-                  key={edu}
-                  style={[styles.optionChip, editForm.education === edu && styles.optionChipActive]}
-                  onPress={() => setEditForm((p) => ({ ...p, education: edu }))}
-                >
-                  <Text style={[styles.optionChipText, editForm.education === edu && styles.optionChipTextActive]}>
-                    {edu}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            {!isEmployer && (
+              <>
+                <Text style={styles.formLabel}>Education</Text>
+                <View style={styles.optionGrid}>
+                  {EDUCATION_OPTIONS.map((edu) => (
+                    <TouchableOpacity
+                      key={edu}
+                      style={[styles.optionChip, editForm.education === edu && styles.optionChipActive]}
+                      onPress={() => setEditForm((p) => ({ ...p, education: edu }))}
+                    >
+                      <Text style={[styles.optionChipText, editForm.education === edu && styles.optionChipTextActive]}>
+                        {edu}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
 
-            <Text style={styles.formLabel}>Experience</Text>
-            <View style={styles.optionGrid}>
-              {EXPERIENCE_OPTIONS.map((exp) => (
-                <TouchableOpacity
-                  key={exp}
-                  style={[styles.optionChip, editForm.experience === exp && styles.optionChipActive]}
-                  onPress={() => setEditForm((p) => ({ ...p, experience: exp }))}
-                >
-                  <Text style={[styles.optionChipText, editForm.experience === exp && styles.optionChipTextActive]}>
-                    {exp}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                <Text style={styles.formLabel}>Experience</Text>
+                <View style={styles.optionGrid}>
+                  {EXPERIENCE_OPTIONS.map((exp) => (
+                    <TouchableOpacity
+                      key={exp}
+                      style={[styles.optionChip, editForm.experience === exp && styles.optionChipActive]}
+                      onPress={() => setEditForm((p) => ({ ...p, experience: exp }))}
+                    >
+                      <Text style={[styles.optionChipText, editForm.experience === exp && styles.optionChipTextActive]}>
+                        {exp}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.formLabel}>Language</Text>
+                <View style={styles.optionGrid}>
+                  {LANGUAGE_OPTIONS.map((lang) => (
+                    <TouchableOpacity
+                      key={lang}
+                      style={[styles.optionChip, editForm.language === lang && styles.optionChipActive]}
+                      onPress={() => setEditForm((p) => ({ ...p, language: lang }))}
+                    >
+                      <Text style={[styles.optionChipText, editForm.language === lang && styles.optionChipTextActive]}>
+                        {lang}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
 
             <View style={{ height: 20 }} />
           </ScrollView>
