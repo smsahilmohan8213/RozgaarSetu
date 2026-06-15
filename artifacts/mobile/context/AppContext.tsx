@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 
 import type { Job, JobCategory } from "@/data/jobs";
 import { LOCALITIES } from "@/data/jobs";
+import { AuthModal } from "@/components/AuthModal";
+import { Applicant, ApplicantStatus, MOCK_APPLICANTS } from "@/data/applicants";
 
 import { ensureProfileRow, signInWithPhoneOtpMock } from "@/lib/authSupabase";
 import { supabase } from "@/lib/supabaseClient";
@@ -70,8 +72,17 @@ interface AppContextType {
   postJob: (draft: DraftJob) => Promise<void>;
   updateJob: (jobId: string, draft: DraftJob) => Promise<void>;
   deletePostedJob: (jobId: string) => Promise<void>;
+  employerJobStatuses: Record<string, "active" | "paused" | "closed">;
+  setEmployerJobStatus: (jobId: string, status: "active" | "paused" | "closed") => void;
   isJobSaved: (jobId: string) => boolean;
   isJobApplied: (jobId: string) => boolean;
+  hasOnboarded: boolean;
+  completeOnboarding: () => Promise<void>;
+  setGuestRole: (role: UserRole) => Promise<void>;
+  requireAuth: (action: () => void) => void;
+  applications: Applicant[];
+  updateMockApplicationStatus: (appId: string, status: ApplicantStatus) => void;
+  scheduleInterview: (appId: string, date: string, time: string) => void;
 }
 
 
@@ -134,6 +145,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [selectedLocality, setSelectedLocality] = useState<string>("All Areas");
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [applicationDatesByJobId, setApplicationDatesByJobId] = useState<Record<string, string>>({});
+  const [applications, setApplications] = useState<Applicant[]>(MOCK_APPLICANTS);
 
   // Phase 2 Step 1: saved_jobs hydration from Supabase (authoritative)
   const [isHydratingSavedJobs, setIsHydratingSavedJobs] = useState(false);
@@ -142,7 +154,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Phase 2 Step 4: jobs hydration from Supabase (public.jobs)
   const [isHydratingJobs, setIsHydratingJobs] = useState(false);
   const [jobsError, setJobsError] = useState<string | null>(null);
+  
+  const [employerJobStatuses, setEmployerJobStatuses] = useState<Record<string, "active" | "paused" | "closed">>({});
 
+  function setEmployerJobStatus(jobId: string, status: "active" | "paused" | "closed") {
+    setEmployerJobStatuses(prev => ({ ...prev, [jobId]: status }));
+  }
+
+  const [hasOnboarded, setHasOnboarded] = useState<boolean>(false);
+  const [isAuthModalVisible, setIsAuthModalVisible] = useState(false);
 
   // Job ids are expected to be UUIDs end-to-end (public.jobs.id + FK columns).
   // Removed best-effort UUID detection to avoid legacy non-UUID fallbacks.
@@ -158,10 +178,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const [
         userData,
         posted,
+        onboardedStatus,
       ] = await Promise.all([
         AsyncStorage.getItem("@rozgaar_user"),
         AsyncStorage.getItem("@rozgaar_posted"),
+        AsyncStorage.getItem("@rozgaar_onboarded"),
       ]);
+
+      if (onboardedStatus === "true") {
+        setHasOnboarded(true);
+      }
 
       // Restore non-auth CRUD state from AsyncStorage (offline cache only)
       if (posted) setPostedJobs(JSON.parse(posted));
@@ -355,8 +381,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function completeOnboarding() {
+    setHasOnboarded(true);
+    await AsyncStorage.setItem("@rozgaar_onboarded", "true");
+  }
 
+  async function setGuestRole(role: UserRole) {
+    const updated = { ...user, role, isAuthenticated: false };
+    setUser(updated);
+    await AsyncStorage.setItem("@rozgaar_user", JSON.stringify(updated));
+  }
 
+  function requireAuth(action: () => void) {
+    if (!user.isAuthenticated) {
+      setIsAuthModalVisible(true);
+    } else {
+      action();
+    }
+  }
 
   async function login(phone: string, name: string, role: UserRole) {
     if (!role) {
@@ -597,6 +639,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const prevAppliedJobIds = appliedJobIds;
     const prevApplicationDates = applicationDatesByJobId;
     const prevPostedJobs = postedJobs;
+    const prevApplications = applications;
 
     // Optimistic UI update (in-memory only)
     const next = [...appliedJobIds, jobId];
@@ -608,6 +651,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       [jobId]: new Date().toISOString(),
     };
     setApplicationDatesByJobId(appliedAtNext);
+
+    // Create a mock local Application record
+    const newApp: Applicant = {
+      id: `app_${Math.random().toString(36).substring(7)}`,
+      jobId,
+      name: user.name || "Guest User",
+      experience: user.experience || "Fresher",
+      skills: user.skills || [],
+      appliedDate: new Date().toISOString(),
+      status: "applied",
+      phone: user.phone || "",
+      email: "",
+      location: user.location || "",
+    };
+    setApplications(prev => [newApp, ...prev]);
 
     // Increment applicant count for the job (offline cache only)
     const jobIndex = postedJobs.findIndex((j) => j.id === jobId);
@@ -626,11 +684,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (!userId) return;
 
-    /** Roll back all three optimistic mutations and restore AsyncStorage. */
+    /** Roll back all optimistic mutations and restore AsyncStorage. */
     async function rollback() {
       setAppliedJobIds(prevAppliedJobIds);
       setApplicationDatesByJobId(prevApplicationDates);
       setPostedJobs(prevPostedJobs);
+      setApplications(prevApplications);
       try {
         await AsyncStorage.setItem("@rozgaar_posted", JSON.stringify(prevPostedJobs));
       } catch {
@@ -720,6 +779,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .eq("applicant_id", applicantId);
 
     if (error) throw error;
+  }
+
+  function updateMockApplicationStatus(appId: string, status: ApplicantStatus) {
+    setApplications(prev => prev.map(a => a.id === appId ? { ...a, status } : a));
+  }
+
+  function scheduleInterview(appId: string, date: string, time: string) {
+    setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: "interview", interviewDate: date, interviewTime: time } : a));
   }
 
 
@@ -914,14 +981,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setJobStatus,
         updateApplicationStatus,
         postJob,
-
         updateJob,
         deletePostedJob,
+        employerJobStatuses,
+        setEmployerJobStatus,
         isJobSaved,
         isJobApplied,
+        hasOnboarded,
+        completeOnboarding,
+        setGuestRole,
+        requireAuth,
+        applications,
+        updateMockApplicationStatus,
+        scheduleInterview,
       }}
     >
       {children}
+      <AuthModal visible={isAuthModalVisible} onClose={() => setIsAuthModalVisible(false)} />
     </AppContext.Provider>
   );
 }

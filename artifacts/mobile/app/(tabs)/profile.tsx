@@ -244,15 +244,7 @@ export default function ProfileScreen() {
         </View>
 
         <Text style={styles.heroName}>{isEmployer && user.companyName ? user.companyName : user.name}</Text>
-        {(isEmployer ? user.companyDescription : user.bio) ? (
-          <Text style={styles.heroBio} numberOfLines={2}>{isEmployer ? user.companyDescription : user.bio}</Text>
-        ) : (
-          <TouchableOpacity onPress={() => setShowEditModal(true)}>
-            <Text style={styles.heroAddBio}>+ Add a short {isEmployer ? "company description" : "bio"}</Text>
-          </TouchableOpacity>
-        )}
-        <Text style={styles.heroPhone}>+91 {user.phone} · {user.location}</Text>
-
+        
         <View style={styles.heroBadgeRow}>
           <View style={styles.heroBadge}>
             <Ionicons name={isEmployer ? "business" : "briefcase"} size={12} color="#fff" />
@@ -265,6 +257,17 @@ export default function ProfileScreen() {
             </View>
           )}
         </View>
+
+        {(isEmployer ? user.companyDescription : user.bio) ? (
+          <Text style={styles.heroBio} numberOfLines={2}>{isEmployer ? user.companyDescription : user.bio}</Text>
+        ) : (
+          <TouchableOpacity onPress={() => setShowEditModal(true)}>
+            <Text style={styles.heroAddBio}>+ Add a short {isEmployer ? "company description" : "bio"}</Text>
+          </TouchableOpacity>
+        )}
+        <Text style={styles.heroPhone}>+91 {user.phone} · {user.location}</Text>
+
+
 
         <TouchableOpacity
           style={styles.editProfileBtn}
@@ -635,9 +638,30 @@ export default function ProfileScreen() {
             <Text style={styles.cardTitle}>Settings</Text>
           </View>
         </View>
-        <MenuItem icon="notifications-outline" label="Job Alerts" onPress={() => router.push("/notifications")} />
-        <MenuItem icon="shield-outline" label="Privacy & Safety" />
-        <MenuItem icon="help-circle-outline" label="Help & Support" last />
+        
+        {!isEmployer && (
+          <MenuItem icon="bookmark-outline" label="Saved Jobs" onPress={() => router.push("/(tabs)/saved")} />
+        )}
+        <MenuItem 
+          icon="language-outline" 
+          label={`Language (${user.language || 'English'})`} 
+          onPress={() => {
+            setEditForm({
+              name: user.name,
+              bio: user.bio,
+              location: user.location,
+              education: user.education,
+              experience: user.experience,
+              language: user.language,
+              companyName: user.companyName ?? "",
+              companyDescription: user.companyDescription ?? "",
+            });
+            setShowEditModal(true);
+          }} 
+        />
+        <MenuItem icon="notifications-outline" label="Notifications" onPress={() => router.push("/notifications")} />
+        <MenuItem icon="help-circle-outline" label="Help & Support" />
+        <MenuItem icon="log-out-outline" label="Log Out" onPress={handleLogout} isDestructive last />
       </View>
 
       {/* ── ADMIN PANEL (hidden access via special phone) ── */}
@@ -657,11 +681,6 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={16} color="#4338CA" />
         </TouchableOpacity>
       )}
-
-      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
-        <Ionicons name="log-out-outline" size={18} color="#EF4444" />
-        <Text style={styles.logoutText}>Log Out</Text>
-      </TouchableOpacity>
 
       {/* ── EDIT PROFILE MODAL ── */}
       <Modal visible={showEditModal} animationType="slide" presentationStyle="pageSheet">
@@ -1111,13 +1130,13 @@ const detailStyles = StyleSheet.create({
   value: { fontSize: 14, fontFamily: "Inter_500Medium", color: "#0F172A" },
 });
 
-function MenuItem({ icon, label, last, onPress }: { icon: string; label: string; last?: boolean; onPress?: () => void }) {
+function MenuItem({ icon, label, last, onPress, isDestructive }: { icon: string; label: string; last?: boolean; onPress?: () => void; isDestructive?: boolean }) {
   return (
     <TouchableOpacity style={[menuStyles.row, !last && menuStyles.rowBorder]} activeOpacity={0.7} onPress={onPress}>
-      <View style={menuStyles.iconWrap}>
-        <Ionicons name={icon as "settings-outline"} size={17} color="#64748B" />
+      <View style={[menuStyles.iconWrap, isDestructive && { backgroundColor: "#FFF5F5" }]}>
+        <Ionicons name={icon as "settings-outline"} size={17} color={isDestructive ? "#EF4444" : "#64748B"} />
       </View>
-      <Text style={menuStyles.label}>{label}</Text>
+      <Text style={[menuStyles.label, isDestructive && { color: "#EF4444" }]}>{label}</Text>
       <Ionicons name="chevron-forward" size={16} color="#CBD5E1" />
     </TouchableOpacity>
   );
@@ -1174,9 +1193,9 @@ const styles = StyleSheet.create({
   heroBio: { fontSize: 13, color: "rgba(255,255,255,0.85)", fontFamily: "Inter_400Regular", textAlign: "center", marginBottom: 6, paddingHorizontal: 20 },
   heroAddBio: { fontSize: 13, color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular", marginBottom: 6 },
   heroPhone: { fontSize: 12, color: "rgba(255,255,255,0.75)", fontFamily: "Inter_400Regular", marginBottom: 12 },
-  heroBadgeRow: { flexDirection: "row", gap: 8, marginBottom: 16, flexWrap: "wrap", justifyContent: "center" },
-  heroBadge: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.15)", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-  heroBadgeText: { color: "#fff", fontSize: 12, fontFamily: "Inter_500Medium" },
+  heroBadgeRow: { flexDirection: "row", gap: 8, marginTop: 8, marginBottom: 14, flexWrap: "wrap", justifyContent: "center" },
+  heroBadge: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.2)", paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20 },
+  heroBadgeText: { color: "#fff", fontSize: 13, fontFamily: "Inter_600SemiBold" },
   editProfileBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#fff", paddingHorizontal: 20, paddingVertical: 9, borderRadius: 20 },
   editProfileBtnText: { color: "#2563EB", fontSize: 13, fontFamily: "Inter_600SemiBold" },
 

@@ -22,15 +22,15 @@ import { useColors } from "@/hooks/useColors";
 
 type SortOption = "recent" | "salary" | "distance";
 
-const JOB_TYPES = ["Full Time", "Part Time", "Freelance"];
+const JOB_TYPES = ["Full Time", "Part Time", "Contract"];
 const SALARY_OPTIONS = [
-  { label: "Any", value: 0 },
-  { label: "₹15k+", value: 15000 },
-  { label: "₹25k+", value: 25000 },
-  { label: "₹40k+", value: 40000 },
+  { label: "10k+", value: 10000 },
+  { label: "15k+", value: 15000 },
+  { label: "20k+", value: 20000 },
+  { label: "30k+", value: 30000 },
 ];
-const EXPERIENCE_OPTIONS = ["Fresher", "Experienced"];
-const DATE_OPTIONS = ["Any time", "Past 24h", "Past week"];
+const EXPERIENCE_OPTIONS = ["Fresher", "1 Year", "2 Years", "3+ Years"];
+const LOCATION_OPTIONS = ["Rohini", "Jahangirpuri", "Pitampura", "Delhi NCR"];
 
 export default function JobsScreen() {
   const colors = useColors();
@@ -38,10 +38,10 @@ export default function JobsScreen() {
   const router = useRouter();
   const isWeb = Platform.OS === "web";
 
-  const { postedJobs, user, setEditingJobId, deletePostedJob } = useApp();
+  const { postedJobs, user, setEditingJobId, deletePostedJob, setEmployerJobStatus, employerJobStatuses } = useApp();
 
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<JobCategory | "All">("All");
+  const [quickFilter, setQuickFilter] = useState("All");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [showFilters, setShowFilters] = useState(false);
 
@@ -49,6 +49,7 @@ export default function JobsScreen() {
   const [jobTypeFilter, setJobTypeFilter] = useState<string[]>([]);
   const [salaryFilter, setSalaryFilter] = useState<number>(0);
   const [experienceFilter, setExperienceFilter] = useState<string[]>([]);
+  const [locationFilter, setLocationFilter] = useState<string[]>([]);
   const [dateFilter, setDateFilter] = useState<string>("Any time");
 
   const isEmployer = user.role === "employer";
@@ -61,20 +62,32 @@ export default function JobsScreen() {
           job.title.toLowerCase().includes(search.toLowerCase()) ||
           job.company.toLowerCase().includes(search.toLowerCase()) ||
           job.location.toLowerCase().includes(search.toLowerCase());
-        const matchCat = selectedCategory === "All" || job.category === selectedCategory;
+        const matchQuick = 
+          quickFilter === "All" ||
+          (quickFilter === "Fresher" && (job.experience === "0 years" || job.isFreshersOk)) ||
+          (quickFilter === "Full Time" && job.jobType === "Full Time") ||
+          (quickFilter === "Part Time" && job.jobType === "Part Time") ||
+          (quickFilter === "Work From Home" && job.location.toLowerCase().includes("home")) ||
+          (quickFilter === "Urgent Hiring" && job.isUrgent) ||
+          (quickFilter === "Verified Employer" && job.isVerified);
 
         const matchJobType = jobTypeFilter.length === 0 || jobTypeFilter.includes(job.jobType);
         const matchSalary = job.salaryMax >= salaryFilter;
+        const matchLocation = locationFilter.length === 0 || locationFilter.includes(job.location);
 
         let matchExp = true;
         if (experienceFilter.length > 0) {
            const isFresher = job.experience === "0 years" || job.isFreshersOk;
-           if (experienceFilter.includes("Fresher") && experienceFilter.includes("Experienced")) {
+           if (experienceFilter.includes("Fresher") && isFresher) {
              matchExp = true;
-           } else if (experienceFilter.includes("Fresher")) {
-             matchExp = isFresher;
-           } else if (experienceFilter.includes("Experienced")) {
-             matchExp = !isFresher;
+           } else if (experienceFilter.includes("1 Year") && job.experience.includes("1")) {
+             matchExp = true;
+           } else if (experienceFilter.includes("2 Years") && job.experience.includes("2")) {
+             matchExp = true;
+           } else if (experienceFilter.includes("3+ Years") && (job.experience.includes("3") || job.experience.includes("4") || job.experience.includes("5"))) {
+             matchExp = true;
+           } else {
+             matchExp = false;
            }
         }
 
@@ -85,14 +98,14 @@ export default function JobsScreen() {
           matchDate = job.postedTime.includes("min") || job.postedTime.includes("hour") || (job.postedTime.includes("day") && parseInt(job.postedTime) <= 7);
         }
 
-        return matchSearch && matchCat && matchJobType && matchSalary && matchExp && matchDate;
+        return matchSearch && matchQuick && matchJobType && matchSalary && matchLocation && matchExp && matchDate;
       })
       .sort((a, b) => {
         if (sortBy === "salary") return b.salaryMax - a.salaryMax;
         if (sortBy === "distance") return a.distanceKm - b.distanceKm;
-        return 0;
+        return 0; // "recent" mock: just keep current order as it's static
       });
-  }, [postedJobs, search, selectedCategory, sortBy, jobTypeFilter, salaryFilter, experienceFilter, dateFilter]);
+  }, [postedJobs, search, quickFilter, sortBy, jobTypeFilter, salaryFilter, experienceFilter, locationFilter, dateFilter]);
 
   const employerStats = useMemo(() => {
     const activeJobs = postedJobs.length;
@@ -104,28 +117,25 @@ export default function JobsScreen() {
   const styles = getStyles(colors);
 
   function handleDeleteJob(jobId: string, title: string) {
-    const runDelete = async () => {
-      await deletePostedJob(jobId);
-    };
-
-    if (Platform.OS === "web") {
-      if (window.confirm(`Delete "${title}"?`)) {
-        void runDelete();
-      }
-      return;
-    }
-
     Alert.alert("Delete Job", `Remove "${title}" from listings?`, [
       { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => {
-          void runDelete();
-        },
-      },
+      { text: "Delete", style: "destructive", onPress: () => deletePostedJob(jobId) },
     ]);
   }
+
+  function handleStatusToggle(jobId: string, currentStatus: "active" | "paused" | "closed", targetStatus: "active" | "paused" | "closed") {
+    setEmployerJobStatus(jobId, targetStatus);
+  }
+
+  const [employerTab, setEmployerTab] = useState<"All" | "Active" | "Paused" | "Closed">("All");
+
+  const employerDisplayJobs = useMemo(() => {
+    return postedJobs.filter((job) => {
+      const status = employerJobStatuses[job.id] || "active";
+      if (employerTab === "All") return true;
+      return status.toLowerCase() === employerTab.toLowerCase();
+    });
+  }, [postedJobs, employerTab, employerJobStatuses]);
 
   function handleEditJob(jobId: string) {
     setEditingJobId(jobId);
@@ -141,65 +151,43 @@ export default function JobsScreen() {
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: isWeb ? 67 : insets.top + 8 }]}>
           <Text style={styles.title}>My Jobs</Text>
-          <Text style={styles.subtitle}>Manage live listings and applicants</Text>
+          <Text style={styles.subtitle}>Manage your listings and applicants</Text>
         </View>
 
-        <View style={styles.dashboardStrip}>
-          <MetricCard label="Active Jobs" value={String(employerStats.activeJobs)} icon="briefcase" colors={colors} />
-          <MetricCard label="Applicants" value={String(employerStats.totalApplicants)} icon="people" colors={colors} />
-          <MetricCard label="Urgent" value={String(employerStats.urgentJobs)} icon="flash" colors={colors} />
-        </View>
-
-        <View style={styles.quickActionsRow}>
-          <QuickAction
-            icon="add-circle"
-            label="Post Job"
-            color={colors.primary}
-            onPress={() => router.push("/post-job")}
-          />
-          <QuickAction
-            icon="people"
-            label="View Applicants"
-            color="#7C3AED"
-            onPress={() => {
-              const firstJob = postedJobs[0];
-              if (firstJob) handleApplicants(firstJob.id);
-            }}
-          />
-          <QuickAction
-            icon="settings"
-            label="Profile"
-            color="#059669"
-            onPress={() => router.push("/(tabs)/profile")}
-          />
+        <View style={styles.empTabs}>
+          {(["All", "Active", "Paused", "Closed"] as const).map(tab => (
+             <TouchableOpacity 
+               key={tab} 
+               style={[styles.empTab, employerTab === tab && styles.empTabActive]}
+               onPress={() => setEmployerTab(tab)}
+             >
+               <Text style={[styles.empTabText, employerTab === tab && styles.empTabTextActive]}>{tab}</Text>
+             </TouchableOpacity>
+          ))}
         </View>
 
         <FlatList
-          data={postedJobs}
+          data={employerDisplayJobs}
           keyExtractor={(item) => item.id}
           contentContainerStyle={[styles.list, { paddingBottom: isWeb ? 100 : 110 }]}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <View style={styles.listHeader}>
-              <Text style={styles.listTitle}>Live Listings</Text>
-              <Text style={styles.listCount}>{postedJobs.length} active</Text>
-            </View>
-          }
           ListEmptyComponent={
             <EmptyJobsState
-              title="No jobs posted yet"
-              text="Create your first listing and start receiving applicants."
+              title="No Jobs Posted"
+              text={employerTab === "All" ? "Create your first listing and start receiving applicants." : `You have no ${employerTab.toLowerCase()} jobs.`}
               actionLabel="Post Job"
               onAction={() => router.push("/post-job")}
               colors={colors}
             />
           }
           renderItem={({ item }) => (
-            <EmployerJobRow
+            <EmployerJobCard
               job={item}
+              status={employerJobStatuses[item.id] || "active"}
               onEdit={() => handleEditJob(item.id)}
               onApplicants={() => handleApplicants(item.id)}
               onDelete={() => handleDeleteJob(item.id, item.title)}
+              onToggleStatus={(newStatus) => handleStatusToggle(item.id, employerJobStatuses[item.id] || "active", newStatus)}
             />
           )}
         />
@@ -232,19 +220,19 @@ export default function JobsScreen() {
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-          {(["All", ...CATEGORIES] as (JobCategory | "All")[]).map((cat) => (
+          {["All", "Fresher", "Full Time", "Part Time", "Work From Home", "Urgent Hiring", "Verified Employer"].map((chip) => (
             <TouchableOpacity
-              key={cat}
+              key={chip}
               style={[
                 styles.catChip,
-                selectedCategory === cat
+                quickFilter === chip
                   ? { backgroundColor: colors.primary, borderColor: colors.primary }
                   : { backgroundColor: "#fff", borderColor: colors.border },
               ]}
-              onPress={() => setSelectedCategory(cat)}
+              onPress={() => setQuickFilter(chip)}
             >
-              <Text style={[styles.catText, { color: selectedCategory === cat ? "#fff" : colors.foreground }]}>
-                {cat}
+              <Text style={[styles.catText, { color: quickFilter === chip ? "#fff" : colors.foreground }]}>
+                {chip}
               </Text>
             </TouchableOpacity>
           ))}
@@ -260,12 +248,17 @@ export default function JobsScreen() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={<Text style={styles.count}>{filteredSeekerJobs.length} jobs found</Text>}
         ListEmptyComponent={
-          <EmptyJobsState
-            title="No jobs match your search"
-            text="Try a different keyword or category."
+            <EmptyJobsState
+            title={search ? "No search results" : "No jobs found"}
+            text={search ? "Try checking for typos or searching a different keyword." : "Try adjusting your filters or categories to find more jobs."}
             onAction={() => {
               setSearch("");
-              setSelectedCategory("All");
+              setQuickFilter("All");
+              setSortBy("recent");
+              setJobTypeFilter([]);
+              setSalaryFilter(0);
+              setExperienceFilter([]);
+              setLocationFilter([]);
             }}
             actionLabel="Clear Filters"
             colors={colors}
@@ -343,16 +336,16 @@ export default function JobsScreen() {
               ))}
             </View>
 
-            <Text style={styles.filterSectionTitle}>Date Posted</Text>
+            <Text style={styles.filterSectionTitle}>Location</Text>
             <View style={styles.filterOptionsGrid}>
-              {DATE_OPTIONS.map((date) => (
+              {LOCATION_OPTIONS.map((loc) => (
                 <TouchableOpacity
-                  key={date}
-                  style={[styles.sortChip, { backgroundColor: dateFilter === date ? colors.primary : "#EEF2FF" }]}
-                  onPress={() => setDateFilter(date)}
+                  key={loc}
+                  style={[styles.sortChip, { backgroundColor: locationFilter.includes(loc) ? colors.primary : "#EEF2FF" }]}
+                  onPress={() => setLocationFilter(prev => prev.includes(loc) ? prev.filter(l => l !== loc) : [...prev, loc])}
                 >
-                  <Text style={[styles.sortText, { color: dateFilter === date ? "#fff" : colors.primary }]}>
-                    {date}
+                  <Text style={[styles.sortText, { color: locationFilter.includes(loc) ? "#fff" : colors.primary }]}>
+                    {loc}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -452,75 +445,7 @@ function EmptyJobsState({
   );
 }
 
-function EmployerJobRow({
-  job,
-  onEdit,
-  onApplicants,
-  onDelete,
-}: {
-  job: {
-    id: string;
-    title: string;
-    company: string;
-    logoInitials: string;
-    logoColor: string;
-    location: string;
-    salary: string;
-    applicants: number;
-    isUrgent: boolean;
-    postedTime: string;
-  };
-  onEdit: () => void;
-  onApplicants: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <View style={rowStyles.card}>
-      <View style={rowStyles.headerRow}>
-        <View style={[rowStyles.logo, { backgroundColor: `${job.logoColor}18` }]}>
-          <Text style={[rowStyles.logoText, { color: job.logoColor }]}>{job.logoInitials}</Text>
-        </View>
-        <View style={rowStyles.info}>
-          <Text style={rowStyles.title} numberOfLines={1}>
-            {job.title}
-          </Text>
-          <Text style={rowStyles.meta} numberOfLines={1}>
-            {job.company} · {job.location}
-          </Text>
-          <Text style={rowStyles.salary}>{job.salary}</Text>
-        </View>
-      </View>
 
-      <View style={rowStyles.badgeRow}>
-        {job.isUrgent && (
-          <View style={rowStyles.urgentBadge}>
-            <Ionicons name="flash" size={11} color="#DC2626" />
-            <Text style={rowStyles.urgentText}>Urgent</Text>
-          </View>
-        )}
-        <View style={rowStyles.applicantBadge}>
-          <Ionicons name="people" size={11} color="#059669" />
-          <Text style={rowStyles.applicantText}>{job.applicants} applicants</Text>
-        </View>
-        <Text style={rowStyles.time}>{job.postedTime}</Text>
-      </View>
-
-      <View style={rowStyles.actions}>
-        <TouchableOpacity style={[rowStyles.actionBtn, rowStyles.secondaryAction]} onPress={onEdit}>
-          <Ionicons name="pencil-outline" size={16} color="#2563EB" />
-          <Text style={rowStyles.secondaryActionText}>Edit</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[rowStyles.actionBtn, rowStyles.primaryAction]} onPress={onApplicants}>
-          <Ionicons name="people-outline" size={16} color="#fff" />
-          <Text style={rowStyles.primaryActionText}>Applicants</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[rowStyles.actionBtn, rowStyles.dangerAction]} onPress={onDelete}>
-          <Ionicons name="trash-outline" size={16} color="#DC2626" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
 
 const metricStyles = StyleSheet.create({
   card: {
@@ -782,6 +707,32 @@ function getStyles(colors: ReturnType<typeof useColors>) {
       fontFamily: "Inter_400Regular",
       color: colors.mutedForeground,
     },
+    empTabs: {
+      flexDirection: "row",
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      gap: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: "#F1F5F9",
+      backgroundColor: "#FFFFFF",
+    },
+    empTab: {
+      paddingBottom: 8,
+      borderBottomWidth: 2,
+      borderBottomColor: "transparent",
+    },
+    empTabActive: {
+      borderBottomColor: "#2563EB",
+    },
+    empTabText: {
+      fontSize: 14,
+      fontFamily: "Inter_500Medium",
+      color: "#64748B",
+    },
+    empTabTextActive: {
+      color: "#2563EB",
+      fontFamily: "Inter_600SemiBold",
+    },
     dashboardStrip: {
       flexDirection: "row",
       gap: 10,
@@ -957,3 +908,175 @@ function getStyles(colors: ReturnType<typeof useColors>) {
     },
   });
 }
+
+function EmployerJobCard({
+  job,
+  status,
+  onEdit,
+  onApplicants,
+  onDelete,
+  onToggleStatus,
+}: {
+  job: any;
+  status: "active" | "paused" | "closed";
+  onEdit: () => void;
+  onApplicants: () => void;
+  onDelete: () => void;
+  onToggleStatus: (newStatus: "active" | "paused" | "closed") => void;
+}) {
+  const isClosed = status === "closed";
+  const isPaused = status === "paused";
+
+  return (
+    <View style={empCardStyles.card}>
+      <View style={empCardStyles.headerRow}>
+        <View style={empCardStyles.titleWrap}>
+          <Text style={empCardStyles.title} numberOfLines={1}>{job.title}</Text>
+          <Text style={empCardStyles.meta}>{job.location} · {job.salary}</Text>
+        </View>
+        <View style={[
+          empCardStyles.statusBadge, 
+          status === "active" ? { backgroundColor: "#D1FAE5" } : 
+          status === "paused" ? { backgroundColor: "#FEF08A" } : { backgroundColor: "#F1F5F9" }
+        ]}>
+          <Text style={[
+            empCardStyles.statusText,
+             status === "active" ? { color: "#059669" } : 
+             status === "paused" ? { color: "#854D0E" } : { color: "#475569" }
+          ]}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </Text>
+        </View>
+      </View>
+      
+      <View style={empCardStyles.statsRow}>
+        <TouchableOpacity style={empCardStyles.statItem} onPress={onApplicants}>
+          <Ionicons name="people" size={16} color="#2563EB" />
+          <Text style={empCardStyles.statText}>{job.applicants} Applicants</Text>
+        </TouchableOpacity>
+        <View style={empCardStyles.statItem}>
+          <Ionicons name="time-outline" size={16} color="#64748B" />
+          <Text style={empCardStyles.statTextLight}>Posted {job.postedTime}</Text>
+        </View>
+      </View>
+
+      <View style={empCardStyles.actionsRow}>
+        <TouchableOpacity style={empCardStyles.actionBtn} onPress={onEdit}>
+          <Ionicons name="pencil" size={16} color="#64748B" />
+          <Text style={empCardStyles.actionText}>Edit</Text>
+        </TouchableOpacity>
+        
+        {status === "active" ? (
+          <TouchableOpacity style={empCardStyles.actionBtn} onPress={() => onToggleStatus("paused")}>
+            <Ionicons name="pause" size={16} color="#64748B" />
+            <Text style={empCardStyles.actionText}>Pause</Text>
+          </TouchableOpacity>
+        ) : status === "paused" ? (
+          <TouchableOpacity style={empCardStyles.actionBtn} onPress={() => onToggleStatus("active")}>
+            <Ionicons name="play" size={16} color="#059669" />
+            <Text style={[empCardStyles.actionText, { color: "#059669" }]}>Resume</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {!isClosed && (
+          <TouchableOpacity style={empCardStyles.actionBtn} onPress={() => onToggleStatus("closed")}>
+            <Ionicons name="close-circle" size={16} color="#EF4444" />
+            <Text style={[empCardStyles.actionText, { color: "#EF4444" }]}>Close</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity style={[empCardStyles.actionBtn, { marginLeft: "auto", borderRightWidth: 0 }]} onPress={onDelete}>
+          <Ionicons name="trash" size={16} color="#EF4444" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const empCardStyles = StyleSheet.create({
+  card: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#94A3B8",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  titleWrap: {
+    flex: 1,
+    marginRight: 12,
+  },
+  title: {
+    fontSize: 16,
+    fontFamily: "Inter_700Bold",
+    color: "#0F172A",
+    marginBottom: 4,
+  },
+  meta: {
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+    color: "#64748B",
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  statusText: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+  },
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F1F5F9",
+    marginBottom: 12,
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  statText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    color: "#2563EB",
+  },
+  statTextLight: {
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
+    color: "#64748B",
+  },
+  actionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  actionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingRight: 12,
+    marginRight: 12,
+    borderRightWidth: 1,
+    borderRightColor: "#F1F5F9",
+  },
+  actionText: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    color: "#64748B",
+  },
+});

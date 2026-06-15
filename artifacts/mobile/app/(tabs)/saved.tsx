@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { JobCard } from "@/components/JobCard";
+import { SavedJobCard } from "@/components/SavedJobCard";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -92,7 +93,7 @@ export default function SavedScreen() {
             <Text style={styles.emptyText}>Tap the bookmark on any job to save it here</Text>
           </View>
         }
-        renderItem={({ item }) => <JobCard job={item} />}
+        renderItem={({ item }) => <SavedJobCard job={item} />}
       />
     </View>
   );

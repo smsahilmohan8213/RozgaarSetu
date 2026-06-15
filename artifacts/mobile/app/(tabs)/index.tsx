@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 
+import { AuthModal } from "@/components/AuthModal";
 import { JobCard } from "@/components/JobCard";
 import { SearchHeader } from "@/components/SearchHeader";
 import { SkeletonCard } from "@/components/SkeletonCard";
@@ -20,6 +21,15 @@ import { useApp } from "@/context/AppContext";
 import { LOCALITIES, type Job } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
 import { supabase } from "@/lib/supabaseClient";
+
+const TRENDING_COMPANIES = [
+  { name: "Zomato", color: "#E23744", logo: "Z" },
+  { name: "Blinkit", color: "#F8CB46", logo: "B" },
+  { name: "Swiggy", color: "#FC8019", logo: "S" },
+  { name: "Urban Company", color: "#000000", logo: "UC" },
+  { name: "BigBasket", color: "#84C225", logo: "bb" },
+  { name: "Zepto", color: "#3B0060", logo: "Z" },
+];
 
 const GREETING_MAP: Record<string, string> = {
   morning: "Good morning",
@@ -37,12 +47,24 @@ function getGreeting() {
 export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { user, selectedLocality, setSelectedLocality, postedJobs } = useApp();
+  const { user, selectedLocality, setSelectedLocality, postedJobs, applications, savedJobIds } = useApp();
   const [search, setSearch] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const isWeb = Platform.OS === "web";
-  const [employerMetrics, setEmployerMetrics] = useState({ activeJobs: 0, totalApplicants: 0, jobsPosted: 0 });
+  const [employerMetrics, setEmployerMetrics] = useState({ activeJobs: 0, totalApplicants: 0, jobsPosted: 0, upcomingInterviews: 0 });
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  const seekerAppsCount = useMemo(() => applications.filter(a => a.name === user.name || a.name === "Guest User" || a.phone === user.phone).length, [applications, user]);
+  const seekerInterviewsCount = useMemo(() => applications.filter(a => (a.name === user.name || a.name === "Guest User" || a.phone === user.phone) && a.status === "interview").length, [applications, user]);
+
+  const requireAuth = (callback: () => void) => {
+    if (!user.isAuthenticated) {
+      setShowAuthModal(true);
+    } else {
+      callback();
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 650);
@@ -52,31 +74,20 @@ export default function HomeScreen() {
   useEffect(() => {
     if (user.role !== "employer") return;
 
-    async function fetchMetrics() {
-      const sessionRes = await supabase.auth.getSession();
-      const userId = sessionRes?.data?.session?.user?.id;
-      if (!userId) return;
-
-      try {
-        const [jobsRes, activeRes, appsRes] = await Promise.all([
-          supabase.from("jobs").select("*", { count: "exact", head: true }).eq("employer_id", userId),
-          supabase.from("jobs").select("*", { count: "exact", head: true }).eq("employer_id", userId).eq("is_active", true),
-          supabase.from("applications").select("*", { count: "exact", head: true })
-        ]);
-
-        // Note: The applications policy automatically limits to applications for this employer's jobs
-        setEmployerMetrics({
-          jobsPosted: jobsRes.count || 0,
-          activeJobs: activeRes.count || 0,
-          totalApplicants: appsRes.count || 0,
-        });
-      } catch (e) {
-        console.log("[Employer Dashboard] Failed to load metrics", e);
-      }
-    }
-
-    fetchMetrics();
-  }, [user.role, refreshing]);
+    // Use pure local state to satisfy Phase 8 requirements
+    const activeJobs = postedJobs.filter(j => true).length; // using true since status override is handled in AppContext locally
+    
+    // Total applicants across all jobs belonging to this employer
+    const totalApps = applications.length;
+    const upcomingInterviews = applications.filter(a => a.status === "interview").length;
+    
+    setEmployerMetrics({
+      jobsPosted: postedJobs.length,
+      activeJobs: activeJobs,
+      totalApplicants: totalApps,
+      upcomingInterviews,
+    });
+  }, [user.role, refreshing, postedJobs, applications]);
 
   const allJobs = postedJobs;
   const urgentJobs = useMemo(() => allJobs.filter((job) => job.isUrgent), [allJobs]);
@@ -163,33 +174,33 @@ export default function HomeScreen() {
           <View style={styles.dashboardGrid}>
             <DashboardCard label="Active Jobs" value={String(employerMetrics.activeJobs)} icon="briefcase" />
             <DashboardCard label="Applicants" value={String(employerMetrics.totalApplicants)} icon="people" />
+            <DashboardCard label="Interviews" value={String(employerMetrics.upcomingInterviews)} icon="calendar" />
             <DashboardCard label="Jobs Posted" value={String(employerMetrics.jobsPosted)} icon="document-text" />
-            <DashboardCard label="Job Views" value="--" icon="eye" note="Analytics soon" />
           </View>
 
           <View style={styles.quickActionsRow}>
             <DashboardAction
               icon="add-circle"
               label="Post Job"
-              onPress={() => router.push("/post-job")}
+              onPress={() => requireAuth(() => router.push("/post-job"))}
               highlighted
             />
             <DashboardAction
               icon="briefcase"
               label="Manage Jobs"
-              onPress={() => router.push("/(tabs)/jobs")}
+              onPress={() => requireAuth(() => router.push("/(tabs)/jobs"))}
             />
             <DashboardAction
               icon="people"
               label="View Applicants"
-              onPress={() => {
+              onPress={() => requireAuth(() => {
                 const firstJob = postedJobs[0];
                 if (firstJob) {
                   router.push(`/employer/applicants/${firstJob.id}`);
                 } else {
                   router.push("/(tabs)/jobs");
                 }
-              }}
+              })}
             />
           </View>
         </LinearGradient>
@@ -206,7 +217,7 @@ export default function HomeScreen() {
             title="No jobs yet"
             text="Post your first job to start receiving applicants."
             actionLabel="Post Job"
-            onAction={() => router.push("/post-job")}
+            onAction={() => requireAuth(() => router.push("/post-job"))}
           />
         ) : (
           postedJobs.slice(0, 4).map((job) => (
@@ -217,6 +228,61 @@ export default function HomeScreen() {
             />
           ))
         )}
+
+        <SectionHeader title="Top Performing Job" subtitle="Most applications received" />
+        {postedJobs.length > 0 ? (
+          <EmployerPreviewRow
+            job={[...postedJobs].sort((a,b) => b.applicants - a.applicants)[0]}
+            onPress={() => router.push(`/employer/applicants/${[...postedJobs].sort((a,b) => b.applicants - a.applicants)[0].id}`)}
+          />
+        ) : (
+          <EmptyInline title="No data yet" text="Your top performing job will appear here." />
+        )}
+
+        <SectionHeader title="Recent Applicants" subtitle="Candidates who applied recently" />
+        {applications.slice(0, 3).length > 0 ? applications.slice(0, 3).map(app => (
+           <View key={app.id} style={styles.recentApplicantRow}>
+             <View style={styles.raAvatar}>
+               <Text style={styles.raAvatarText}>{app.name.charAt(0)}</Text>
+             </View>
+             <View style={styles.raInfo}>
+               <Text style={styles.raName}>{app.name}</Text>
+               <Text style={styles.raMeta}>{app.experience} · {app.location}</Text>
+             </View>
+             <TouchableOpacity 
+               style={styles.raBtn}
+               onPress={() => router.push(`/employer/applicants/${app.jobId}`)}
+             >
+               <Text style={styles.raBtnText}>Review</Text>
+             </TouchableOpacity>
+           </View>
+        )) : (
+          <EmptyInline title="No applicants yet" text="When job seekers apply, they'll appear here." />
+        )}
+
+        <SectionHeader title="Upcoming Interviews" subtitle="Interviews scheduled" />
+        {applications.filter(a => a.status === "interview").slice(0, 3).length > 0 ? applications.filter(a => a.status === "interview").slice(0, 3).map(app => (
+           <View key={app.id + "iv"} style={styles.interviewRow}>
+             <View style={styles.ivDateBox}>
+               <Text style={styles.ivDateDay}>{new Date(app.interviewDate || "").getDate()}</Text>
+               <Text style={styles.ivDateMonth}>{new Date(app.interviewDate || "").toLocaleString('default', { month: 'short' })}</Text>
+             </View>
+             <View style={styles.ivInfo}>
+               <Text style={styles.ivName}>{app.name}</Text>
+               <Text style={styles.ivMeta}>{app.interviewTime}</Text>
+             </View>
+             <TouchableOpacity 
+               style={styles.raBtn}
+               onPress={() => router.push(`/employer/applicants/${app.jobId}`)}
+             >
+               <Text style={styles.raBtnText}>View</Text>
+             </TouchableOpacity>
+           </View>
+        )) : (
+          <EmptyInline title="No interviews scheduled" text="Shortlist applicants to schedule interviews." />
+        )}
+
+        <AuthModal visible={showAuthModal} onClose={() => setShowAuthModal(false)} />
       </ScrollView>
     );
   }
@@ -241,11 +307,35 @@ export default function HomeScreen() {
         contentContainerStyle={[styles.scroll, { paddingBottom: isWeb ? 100 : 110 }]}
         ListHeaderComponent={
           <View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.localityScroll}
-            >
+            <View style={styles.localityScroll}>
+              <LinearGradient
+                colors={["#1D4ED8", "#2563EB", "#3B82F6"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.seekerHero}
+              >
+                <Text style={styles.seekerHeroTitle}>Find jobs near you</Text>
+                <Text style={styles.seekerHeroSub}>Explore thousands of local opportunities tailored for you.</Text>
+                <TouchableOpacity style={styles.seekerHeroBtn} onPress={() => router.push("/(tabs)/jobs")}>
+                  <Text style={styles.seekerHeroBtnText}>Quick Apply</Text>
+                  <Ionicons name="arrow-forward" size={16} color="#2563EB" />
+                </TouchableOpacity>
+              </LinearGradient>
+
+              {user.isAuthenticated && (
+                <View style={[styles.dashboardGrid, { marginTop: 16 }]}>
+                  <DashboardCard label="Applications" value={String(seekerAppsCount)} icon="document-text" onPress={() => router.push("/applications" as any)} />
+                  <DashboardCard label="Interviews" value={String(seekerInterviewsCount)} icon="calendar" onPress={() => router.push("/applications" as any)} />
+                  <DashboardCard label="Saved Jobs" value={String(savedJobIds.length)} icon="bookmark" onPress={() => router.push("/(tabs)/saved")} />
+                </View>
+              )}
+
+              <SectionHeader title="Popular Localities" />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.localityScrollInner}
+              >
               {LOCALITIES.map((loc) => (
                 <TouchableOpacity
                   key={loc}
@@ -268,7 +358,27 @@ export default function HomeScreen() {
                   </Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+              </ScrollView>
+
+              {search.length === 0 && (
+                <>
+                  <SectionHeader title="Trending Companies" subtitle="Top delivery & gig brands" />
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.companyScroll}>
+                    {TRENDING_COMPANIES.map((company) => (
+                      <View key={company.name} style={styles.trendingCard}>
+                        <View style={[styles.trendingLogo, { backgroundColor: `${company.color}15` }]}>
+                          <Text style={[styles.trendingLogoText, { color: company.color }]}>{company.logo}</Text>
+                        </View>
+                        <Text style={styles.trendingName} numberOfLines={1}>{company.name}</Text>
+                        <TouchableOpacity style={styles.trendingApplyBtn} onPress={() => router.push("/(tabs)/jobs")}>
+                          <Text style={styles.trendingApplyText}>View Jobs</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </>
+              )}
+            </View>
 
             {search.length > 0 ? (
               <SectionHeader title={`Results for "${search}"`} subtitle={`${filteredJobs.length} matches`} />
@@ -397,13 +507,15 @@ function DashboardCard({
   value,
   icon,
   note,
+  onPress,
 }: {
   label: string;
   value: string;
   icon: ComponentProps<typeof Ionicons>["name"];
   note?: string;
+  onPress?: () => void;
 }) {
-  return (
+  const content = (
     <View style={dashStyles.card}>
       <View style={dashStyles.iconWrap}>
         <Ionicons name={icon} size={18} color="#2563EB" />
@@ -413,6 +525,16 @@ function DashboardCard({
       {note ? <Text style={dashStyles.note}>{note}</Text> : null}
     </View>
   );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={{ width: "48%" }}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return content;
 }
 
 function DashboardAction({
@@ -856,6 +978,106 @@ function getStyles(colors: ReturnType<typeof useColors>) {
       textTransform: "uppercase",
       letterSpacing: 1,
     },
+    filterSectionTitle: {
+      fontSize: 15,
+      fontFamily: "Inter_600SemiBold",
+      color: colors.foreground,
+      marginTop: 20,
+      marginBottom: 10,
+    },
+    recentApplicantRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "#fff",
+      padding: 14,
+      borderRadius: 14,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: "#F1F5F9",
+      marginHorizontal: 16,
+    },
+    raAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: "#DBEAFE",
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 12,
+    },
+    raAvatarText: {
+      fontSize: 16,
+      fontFamily: "Inter_700Bold",
+      color: "#1E3A8A",
+    },
+    raInfo: {
+      flex: 1,
+    },
+    raName: {
+      fontSize: 15,
+      fontFamily: "Inter_600SemiBold",
+      color: "#0F172A",
+    },
+    raMeta: {
+      fontSize: 13,
+      fontFamily: "Inter_400Regular",
+      color: "#64748B",
+    },
+    raBtn: {
+      backgroundColor: "#EEF2FF",
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 10,
+    },
+    raBtnText: {
+      fontSize: 13,
+      fontFamily: "Inter_600SemiBold",
+      color: "#2563EB",
+    },
+    interviewRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "#fff",
+      padding: 16,
+      borderRadius: 16,
+      marginHorizontal: 16,
+      marginBottom: 10,
+      borderWidth: 1,
+      borderColor: "#E2E8F0",
+    },
+    ivDateBox: {
+      backgroundColor: "#EEF2FF",
+      borderRadius: 12,
+      padding: 10,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 12,
+      minWidth: 50,
+    },
+    ivDateDay: {
+      fontSize: 18,
+      fontFamily: "Inter_700Bold",
+      color: "#2563EB",
+    },
+    ivDateMonth: {
+      fontSize: 11,
+      fontFamily: "Inter_500Medium",
+      color: "#3B82F6",
+      textTransform: "uppercase",
+    },
+    ivInfo: {
+      flex: 1,
+    },
+    ivName: {
+      fontSize: 15,
+      fontFamily: "Inter_600SemiBold",
+      color: "#0F172A",
+    },
+    ivMeta: {
+      fontSize: 13,
+      fontFamily: "Inter_500Medium",
+      color: "#64748B",
+    },
     heroTitle: {
       fontSize: 26,
       fontFamily: "Inter_700Bold",
@@ -882,10 +1104,96 @@ function getStyles(colors: ReturnType<typeof useColors>) {
       marginTop: 12,
     },
     localityScroll: {
-      gap: 8,
-      paddingHorizontal: 16,
+      gap: 0,
+      paddingHorizontal: 0,
       paddingTop: 6,
       paddingBottom: 6,
+      flexDirection: "column",
+    },
+    localityScrollInner: {
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingTop: 4,
+      paddingBottom: 6,
+    },
+    seekerHero: {
+      marginHorizontal: 16,
+      marginTop: 6,
+      borderRadius: 24,
+      padding: 20,
+      shadowColor: "#2563EB",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.25,
+      shadowRadius: 16,
+      elevation: 6,
+    },
+    seekerHeroTitle: {
+      fontSize: 22,
+      fontFamily: "Inter_700Bold",
+      color: "#fff",
+    },
+    seekerHeroSub: {
+      fontSize: 13,
+      fontFamily: "Inter_400Regular",
+      color: "rgba(255,255,255,0.85)",
+      marginTop: 6,
+      marginBottom: 16,
+    },
+    seekerHeroBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: "#fff",
+      alignSelf: "flex-start",
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 16,
+    },
+    seekerHeroBtnText: {
+      fontSize: 14,
+      fontFamily: "Inter_600SemiBold",
+      color: "#2563EB",
+    },
+    trendingCard: {
+      width: 130,
+      backgroundColor: "#fff",
+      borderRadius: 20,
+      padding: 14,
+      alignItems: "center",
+      shadowColor: "#0F172A",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      elevation: 2,
+    },
+    trendingLogo: {
+      width: 50,
+      height: 50,
+      borderRadius: 16,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 10,
+    },
+    trendingLogoText: {
+      fontSize: 20,
+      fontFamily: "Inter_700Bold",
+    },
+    trendingName: {
+      fontSize: 14,
+      fontFamily: "Inter_600SemiBold",
+      color: "#0F172A",
+      marginBottom: 10,
+    },
+    trendingApplyBtn: {
+      backgroundColor: "#EEF2FF",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 12,
+    },
+    trendingApplyText: {
+      fontSize: 12,
+      fontFamily: "Inter_600SemiBold",
+      color: "#2563EB",
     },
     localityChip: {
       paddingHorizontal: 16,

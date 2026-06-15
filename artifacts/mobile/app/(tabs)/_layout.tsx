@@ -35,8 +35,17 @@ const ALL_ROUTES: TabRouteName[] = [
   "nearby",
 ];
 
-function getTabsForRole(role: ReturnType<typeof useApp>["user"]["role"]): TabConfig[] {
-  if (role === "employer") {
+function getTabsForRole(user: ReturnType<typeof useApp>["user"]): TabConfig[] {
+  // Guest (not authenticated) gets the same tabs regardless of selected role
+  if (!user.isAuthenticated) {
+    return [
+      { name: "index", label: "Home", icon: "home-outline" },
+      { name: "jobs", label: "Jobs", icon: "briefcase-outline" },
+      { name: "profile", label: "Profile", icon: "person-outline" },
+    ];
+  }
+
+  if (user.role === "employer") {
     return [
       { name: "index", label: "Home", icon: "home-outline" },
       { name: "jobs", label: "My Jobs", icon: "briefcase-outline" },
@@ -45,7 +54,7 @@ function getTabsForRole(role: ReturnType<typeof useApp>["user"]["role"]): TabCon
     ];
   }
 
-  if (role === "seeker") {
+  if (user.role === "seeker") {
     return [
       { name: "index", label: "Home", icon: "home-outline" },
       { name: "jobs", label: "Jobs", icon: "briefcase-outline" },
@@ -54,7 +63,7 @@ function getTabsForRole(role: ReturnType<typeof useApp>["user"]["role"]): TabCon
     ];
   }
 
-  // Guest (role === null)
+  // Fallback
   return [
     { name: "index", label: "Home", icon: "home-outline" },
     { name: "jobs", label: "Jobs", icon: "briefcase-outline" },
@@ -175,9 +184,13 @@ function NativeTabBar(props: any) {
                       backgroundColor: isFocused
                         ? tab.isPrimary
                           ? activeColor
-                          : pillColor
+                          : "#EEF2FF"
                         : "transparent",
                       shadowColor: tab.isPrimary ? activeColor : "#0F172A",
+                      shadowOffset: isFocused && tab.isPrimary ? { width: 0, height: 8 } : undefined,
+                      shadowOpacity: isFocused && tab.isPrimary ? 0.3 : undefined,
+                      shadowRadius: isFocused && tab.isPrimary ? 12 : undefined,
+                      elevation: isFocused && tab.isPrimary ? 8 : 0,
                     },
                   ]}
                 >
@@ -187,8 +200,8 @@ function NativeTabBar(props: any) {
                         ? (tab.icon.replace("-outline", "") as ComponentProps<typeof Ionicons>["name"])
                         : tab.icon
                     }
-                    size={tab.isPrimary ? 24 : 21}
-                    color={tab.isPrimary && isFocused ? "#FFFFFF" : isFocused ? activeColor : inactiveColor}
+                    size={tab.isPrimary ? 26 : 22}
+                    color={tab.isPrimary && isFocused ? "#FFFFFF" : isFocused ? "#2563EB" : inactiveColor}
                     style={styles.icon}
                   />
                   <Text
@@ -198,8 +211,8 @@ function NativeTabBar(props: any) {
                       styles.label,
                       tab.isPrimary && styles.primaryLabel,
                       {
-                        color: tab.isPrimary && isFocused ? "#FFFFFF" : isFocused ? activeColor : inactiveColor,
-                        fontFamily: tab.isPrimary ? "Inter_700Bold" : "Inter_500Medium",
+                        color: tab.isPrimary && isFocused ? "#FFFFFF" : isFocused ? "#2563EB" : inactiveColor,
+                        fontFamily: tab.isPrimary ? "Inter_700Bold" : isFocused ? "Inter_600SemiBold" : "Inter_500Medium",
                       },
                     ]}
                   >
@@ -218,7 +231,7 @@ function NativeTabBar(props: any) {
 function TabLayout() {
   const { user } = useApp();
   const colors = useColors();
-  const tabs = getTabsForRole(user.role);
+  const tabs = getTabsForRole(user);
 
   const activeColor = colors.primary ?? "#0A66C2";
   const inactiveColor = "#64748B";
@@ -276,7 +289,7 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   shell: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingTop: 10,
   },
   bar: {
@@ -285,14 +298,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     borderTopWidth: 1,
     borderWidth: 1,
-    borderRadius: 30,
-    padding: 8,
-    gap: 6,
+    borderRadius: 34,
+    padding: 6,
+    gap: 4,
     shadowColor: "#0F172A",
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 28,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 32,
+    elevation: 20,
   },
   tabButton: {
     flex: 1,
@@ -302,22 +315,22 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   tabPill: {
-    minHeight: 60,
-    borderRadius: 22,
+    minHeight: 64,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 10,
     overflow: "hidden",
   } as ViewStyle,
   primarySlot: {
-    transform: [{ translateY: -8 }],
+    transform: [{ translateY: -12 }],
   },
   primaryPill: {
-    minHeight: 72,
-    borderRadius: 24,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    minHeight: 76,
+    borderRadius: 38,
+    paddingHorizontal: 8,
+    paddingVertical: 12,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.18,
     shadowRadius: 18,

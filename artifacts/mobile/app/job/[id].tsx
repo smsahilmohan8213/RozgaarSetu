@@ -11,6 +11,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -22,7 +23,7 @@ export default function JobDetailScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { isJobSaved, toggleSaveJob, isJobApplied, user, postedJobs } = useApp();
+  const { isJobSaved, toggleSaveJob, isJobApplied, user, postedJobs, requireAuth } = useApp();
   const isWeb = Platform.OS === "web";
 
   const allJobs = postedJobs;
@@ -43,24 +44,34 @@ export default function JobDetailScreen() {
   const applied = isJobApplied(job.id);
 
   async function onSave() {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    toggleSaveJob(job!.id);
+    requireAuth(async () => {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      toggleSaveJob(job!.id);
+    });
   }
 
-  function onWhatsApp() {
+  async function onWhatsApp() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const msg = encodeURIComponent(
       `Hi, I want to apply for the ${job!.title} position at ${job!.company} from RozgaarSetu.`
     );
-    Linking.openURL(`https://wa.me/91${job!.whatsappNumber}?text=${msg}`);
+    const url = `https://wa.me/91${job!.whatsappNumber}?text=${msg}`;
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert("Error", "WhatsApp is not installed on this device.");
+      }
+    } catch (e) {
+      Alert.alert("Error", "WhatsApp is not installed on this device.");
+    }
   }
 
   function onApply() {
-    if (!user.isAuthenticated) {
-      router.push("/auth");
-      return;
-    }
-    router.push(`/apply/${job!.id}`);
+    requireAuth(() => {
+      router.push(`/apply/${job!.id}`);
+    });
   }
 
   return (

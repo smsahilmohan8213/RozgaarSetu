@@ -30,7 +30,7 @@ const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 export function JobCard({ job, compact = false }: JobCardProps) {
   const colors = useColors();
   const router = useRouter();
-  const { isJobSaved, toggleSaveJob, isJobApplied } = useApp();
+  const { isJobSaved, toggleSaveJob, isJobApplied, requireAuth } = useApp();
   const scale = useSharedValue(1);
   const saved = isJobSaved(job.id);
   const applied = isJobApplied(job.id);
@@ -49,8 +49,10 @@ export function JobCard({ job, compact = false }: JobCardProps) {
     router.push(`/job/${job.id}`);
   }
   async function onSave() {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    toggleSaveJob(job.id);
+    requireAuth(async () => {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      toggleSaveJob(job.id);
+    });
   }
   function onWhatsApp() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -151,7 +153,7 @@ export function JobCard({ job, compact = false }: JobCardProps) {
         <View style={styles.actions}>
           <TouchableOpacity
             style={[styles.applyBtn, applied && { backgroundColor: "#059669" }]}
-            onPress={() => router.push(`/apply/${job.id}`)}
+            onPress={() => requireAuth(() => router.push(`/apply/${job.id}`))}
             disabled={applied}
             activeOpacity={0.85}
           >
