@@ -24,7 +24,16 @@ type TabConfig = {
   isPrimary?: boolean;
 };
 
-type HiddenTabName = "activity" | "nearby";
+// Single source of truth for route registration order
+const ALL_ROUTES: TabRouteName[] = [
+  "index",
+  "jobs",
+  "activity",
+  "post-job",
+  "profile",
+  "saved",
+  "nearby",
+];
 
 function getTabsForRole(role: ReturnType<typeof useApp>["user"]["role"]): TabConfig[] {
   if (role === "employer") {
@@ -36,10 +45,19 @@ function getTabsForRole(role: ReturnType<typeof useApp>["user"]["role"]): TabCon
     ];
   }
 
+  if (role === "seeker") {
+    return [
+      { name: "index", label: "Home", icon: "home-outline" },
+      { name: "jobs", label: "Jobs", icon: "briefcase-outline" },
+      { name: "activity", label: "Activity", icon: "notifications-outline" },
+      { name: "profile", label: "Profile", icon: "person-outline" },
+    ];
+  }
+
+  // Guest (role === null)
   return [
     { name: "index", label: "Home", icon: "home-outline" },
     { name: "jobs", label: "Jobs", icon: "briefcase-outline" },
-    { name: "saved", label: "Saved", icon: "bookmark-outline" },
     { name: "profile", label: "Profile", icon: "person-outline" },
   ];
 }
@@ -75,6 +93,8 @@ function NativeTabBar(props: any) {
       pillColor: string;
     };
   const isIOS = Platform.OS === "ios";
+  
+  // Filter state routes so we only render buttons for the active role's tabs
   const visibleRouteNames = new Set(tabs.map((tab) => tab.name));
   const visibleRoutes = state.routes.filter((route) => visibleRouteNames.has(route.name as TabRouteName));
 
@@ -204,6 +224,15 @@ function TabLayout() {
   const inactiveColor = "#64748B";
   const pillColor = "rgba(10, 102, 194, 0.12)";
 
+  // Predefine titles for standard screens
+  const titles: Partial<Record<TabRouteName, string>> = {
+    index: "Home",
+    jobs: user.role === "employer" ? "My Jobs" : "Jobs",
+    activity: "Activity",
+    "post-job": "Post Job",
+    profile: "Profile",
+  };
+
   return (
     <Tabs
       tabBar={(props) => (
@@ -219,31 +248,22 @@ function TabLayout() {
         headerShown: false,
       }}
     >
-      {tabs.map((tab) => (
-        <Tabs.Screen
-          key={tab.name}
-          name={tab.name}
-          options={{
-            title: tab.label,
-          }}
-        />
-      ))}
-
-      {(
-        [
-          user.role === "seeker" ? "post-job" : "saved",
-          "activity",
-          "nearby",
-        ] as Array<HiddenTabName | "saved" | "post-job">
-      ).map((name) => (
-        <Tabs.Screen
-          key={name}
-          name={name}
-          options={{
-            href: null,
-          }}
-        />
-      ))}
+      {ALL_ROUTES.map((name) => {
+        const isHidden = name === "saved" || name === "nearby";
+        
+        return (
+          <Tabs.Screen
+            key={name}
+            name={name}
+            options={{
+              title: titles[name],
+              // Href null is strictly for routes that are permanently hidden from the tab bar but accessible via navigation.
+              // It is NOT used for role switching.
+              href: isHidden ? null : undefined,
+            }}
+          />
+        );
+      })}
     </Tabs>
   );
 }
@@ -319,3 +339,4 @@ const styles = StyleSheet.create({
 });
 
 export default TabLayout;
+
