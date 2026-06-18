@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function RoleSelectionScreen() {
@@ -13,6 +14,7 @@ export default function RoleSelectionScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { setGuestRole, completeOnboarding } = useApp();
+  const { t } = useTranslation();
   const isWeb = Platform.OS === "web";
   
   const [selectedRole, setSelectedRole] = useState<"seeker" | "employer" | null>(null);
@@ -21,7 +23,7 @@ export default function RoleSelectionScreen() {
     if (!selectedRole) return;
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await setGuestRole(selectedRole);
-    router.push("/onboarding/language" as any);
+    router.push("/(tabs)" as any);
   }
 
   const styles = getStyles(colors);
@@ -44,12 +46,12 @@ export default function RoleSelectionScreen() {
             />
           </View>
           <Text style={styles.appName}>RozgaarSetu</Text>
-          <Text style={styles.tagline}>Select your role</Text>
+          <Text style={styles.tagline}>{t("Select your role")}</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={[styles.cardTitle, { color: colors.foreground }]}>I am a...</Text>
-          <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>Choose how you want to explore the app.</Text>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("I am a...")}</Text>
+          <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>{t("Choose how you want to explore the app.")}</Text>
 
           <TouchableOpacity
             style={[
@@ -68,10 +70,10 @@ export default function RoleSelectionScreen() {
             <Ionicons name="person" size={28} color={selectedRole === "seeker" ? colors.primary : colors.foreground} />
             <View style={styles.roleText}>
               <Text style={[styles.roleName, { color: colors.foreground }]}>
-                Job Seeker
+                {t("Job Seeker")}
               </Text>
               <Text style={[styles.roleDesc, { color: colors.mutedForeground }]}>
-                Find jobs near you
+                {t("Find jobs near you")}
               </Text>
             </View>
             <Ionicons name="checkmark-circle" size={24} color={selectedRole === "seeker" ? colors.primary : "transparent"} />
@@ -94,10 +96,10 @@ export default function RoleSelectionScreen() {
             <MaterialCommunityIcons name="office-building" size={28} color={selectedRole === "employer" ? colors.primary : colors.foreground} />
             <View style={styles.roleText}>
               <Text style={[styles.roleName, { color: colors.foreground }]}>
-                Employer
+                {t("Employer")}
               </Text>
               <Text style={[styles.roleDesc, { color: colors.mutedForeground }]}>
-                Post jobs & hire talent
+                {t("Post jobs & hire talent")}
               </Text>
             </View>
             <Ionicons name="checkmark-circle" size={24} color={selectedRole === "employer" ? colors.primary : "transparent"} />
@@ -109,7 +111,7 @@ export default function RoleSelectionScreen() {
             disabled={!selectedRole}
             activeOpacity={0.8}
           >
-            <Text style={[styles.primaryBtnText, { color: selectedRole ? "#fff" : colors.mutedForeground }]}>Start Exploring</Text>
+            <Text style={[styles.primaryBtnText, { color: selectedRole ? "#fff" : colors.mutedForeground }]}>{t("Start Exploring")}</Text>
           </TouchableOpacity>
         </View>
       </View>

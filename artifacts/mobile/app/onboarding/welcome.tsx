@@ -84,33 +84,31 @@ export default function WelcomeScreen() {
           </View>
           
           <View style={styles.heroContent}>
-            <Text style={styles.heroTitle}>{t("Find Jobs Near Your Home") || "Find Jobs Near Your Home"}</Text>
-            <Text style={styles.heroSub}>
-              Discover verified local jobs near Rohini, Jahangirpuri, Pitampura, Azadpur, Model Town and nearby areas.
-            </Text>
+            <Text style={styles.heroTitle}>{t("Find Jobs Near Your Home")}</Text>
+            <Text style={styles.heroSub}>{t("Discover verified local jobs near Rohini, Jahangirpuri, Pitampura, Azadpur, Model Town and nearby areas.")}</Text>
             
             <View style={styles.cardsRow}>
               <View style={styles.jobCard}>
                 <Ionicons name="bicycle" size={24} color="#2563EB" />
-                <Text style={styles.jobCardText}>Delivery Executive</Text>
+                <Text style={styles.jobCardText}>{t("Delivery Executive")}</Text>
               </View>
               <View style={styles.jobCard}>
                 <Ionicons name="business" size={24} color="#059669" />
-                <Text style={styles.jobCardText}>Office Executive</Text>
+                <Text style={styles.jobCardText}>{t("Office Executive")}</Text>
               </View>
               <View style={styles.jobCard}>
                 <Ionicons name="cart" size={24} color="#D97706" />
-                <Text style={styles.jobCardText}>Retail Staff</Text>
+                <Text style={styles.jobCardText}>{t("Retail Staff")}</Text>
               </View>
             </View>
             <View style={styles.cardsRow2}>
               <View style={styles.jobCard}>
                 <Ionicons name="construct" size={24} color="#7C3AED" />
-                <Text style={styles.jobCardText}>Technician</Text>
+                <Text style={styles.jobCardText}>{t("Technician")}</Text>
               </View>
               <View style={styles.jobCard}>
                 <Ionicons name="people" size={24} color="#DC2626" />
-                <Text style={styles.jobCardText}>Recruiter Posting Jobs</Text>
+                <Text style={styles.jobCardText}>{t("Recruiter Posting Jobs")}</Text>
               </View>
             </View>
           </View>
@@ -121,23 +119,23 @@ export default function WelcomeScreen() {
         <View style={styles.benefitsContainer}>
           <View style={styles.benefitItem}>
             <Ionicons name="checkmark-circle" size={18} color="#059669" />
-            <Text style={styles.benefitText}>Nearby Jobs</Text>
+            <Text style={styles.benefitText}>{t("Nearby Jobs")}</Text>
           </View>
           <View style={styles.benefitItem}>
             <Ionicons name="checkmark-circle" size={18} color="#059669" />
-            <Text style={styles.benefitText}>Verified Employers</Text>
+            <Text style={styles.benefitText}>{t("Verified Employers")}</Text>
           </View>
           <View style={styles.benefitItem}>
             <Ionicons name="checkmark-circle" size={18} color="#059669" />
-            <Text style={styles.benefitText}>One Tap Apply</Text>
+            <Text style={styles.benefitText}>{t("One Tap Apply")}</Text>
           </View>
           <View style={styles.benefitItem}>
             <Ionicons name="checkmark-circle" size={18} color="#059669" />
-            <Text style={styles.benefitText}>Freshers Welcome</Text>
+            <Text style={styles.benefitText}>{t("Freshers Welcome")}</Text>
           </View>
           <View style={styles.benefitItem}>
             <Ionicons name="checkmark-circle" size={18} color="#059669" />
-            <Text style={styles.benefitText}>Local Hiring</Text>
+            <Text style={styles.benefitText}>{t("Local Hiring")}</Text>
           </View>
         </View>
 
@@ -148,7 +146,7 @@ export default function WelcomeScreen() {
             activeOpacity={0.8}
           >
             <Ionicons name="logo-google" size={20} color="#EA4335" />
-            <Text style={styles.googleBtnText}>Continue with Google</Text>
+            <Text style={styles.googleBtnText}>{t("Continue with Google")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -157,7 +155,7 @@ export default function WelcomeScreen() {
             activeOpacity={0.8}
           >
             <Ionicons name="call" size={20} color={colors.primary} />
-            <Text style={styles.phoneBtnText}>Continue with Phone Number</Text>
+            <Text style={styles.phoneBtnText}>{t("Continue with Phone Number")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -165,7 +163,7 @@ export default function WelcomeScreen() {
             onPress={handleGuest}
             activeOpacity={0.8}
           >
-            <Text style={styles.guestBtnText}>Continue as Guest</Text>
+            <Text style={styles.guestBtnText}>{t("Continue as Guest")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -188,7 +186,7 @@ export default function WelcomeScreen() {
                 <Ionicons name="close" size={20} color="#475569" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.modalTitle}>Choose Language</Text>
+            <Text style={styles.modalTitle}>{t("Choose Language")}</Text>
 
             {["English", "Hinglish", "Hindi"].map((item) => {
               const selected = currentLang === item;

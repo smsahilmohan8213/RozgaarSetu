@@ -20,6 +20,7 @@ import Animated, {
 import { useApp } from "@/context/AppContext";
 import { type Job } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface JobCardProps {
   job: Job;
@@ -30,6 +31,7 @@ const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 export function JobCard({ job, compact = false }: JobCardProps) {
   const colors = useColors();
+  const { t } = useTranslation();
   const router = useRouter();
   const { isJobSaved, toggleSaveJob, isJobApplied, requireAuth } = useApp();
   const scale = useSharedValue(1);
@@ -76,7 +78,7 @@ export function JobCard({ job, compact = false }: JobCardProps) {
       {job.isUrgent && (
         <View style={styles.urgentBanner}>
           <Ionicons name="flash" size={10} color="#fff" />
-          <Text style={styles.urgentText}>URGENT HIRING</Text>
+          <Text style={styles.urgentText}>{t("URGENT HIRING")}</Text>
         </View>
       )}
 
@@ -112,13 +114,13 @@ export function JobCard({ job, compact = false }: JobCardProps) {
             {job.isVerified && (
               <View style={[styles.badge, { backgroundColor: "#D1FAE5" }]}>
                 <Ionicons name="checkmark-circle" size={11} color="#059669" />
-                <Text style={[styles.badgeText, { color: "#059669" }]}>Verified</Text>
+                <Text style={[styles.badgeText, { color: "#059669" }]}>{t("Verified")}</Text>
               </View>
             )}
             {job.isTrusted && (
               <View style={[styles.badge, { backgroundColor: colors.accent }]}>
                 <Ionicons name="shield-checkmark" size={11} color={colors.primary} />
-                <Text style={[styles.badgeText, { color: colors.primary }]}>Trusted</Text>
+                <Text style={[styles.badgeText, { color: colors.primary }]}>{t("Trusted")}</Text>
               </View>
             )}
           </View>
@@ -129,11 +131,11 @@ export function JobCard({ job, compact = false }: JobCardProps) {
         <Ionicons name="cash-outline" size={15} color="#059669" />
         <Text style={styles.salaryText}>{job.salary}</Text>
         {job.isNegotiable && (
-          <Text style={[styles.negotiable, { color: colors.mutedForeground }]}> · Negotiable</Text>
+          <Text style={[styles.negotiable, { color: colors.mutedForeground }]}> · {t("Negotiable")}</Text>
         )}
         {job.isFreshersOk && (
           <View style={styles.fresherBadge}>
-            <Text style={[styles.fresherText, { color: colors.primary }]}>Freshers OK</Text>
+            <Text style={[styles.fresherText, { color: colors.primary }]}>{t("Freshers OK")}</Text>
           </View>
         )}
       </View>
@@ -143,7 +145,7 @@ export function JobCard({ job, compact = false }: JobCardProps) {
           <MetaChip icon="location-outline" label={`${job.location} · ${job.distanceKm} km`} colors={colors} />
           <MetaChip icon="briefcase-outline" label={job.experience} colors={colors} />
           <MetaChip icon="time-outline" label={job.postedTime} colors={colors} />
-          <MetaChip icon="people-outline" label={`${job.applicants} applied`} colors={colors} />
+          <MetaChip icon="people-outline" label={`${job.applicants} ${t("applied")}`} colors={colors} />
         </View>
       )}
 
@@ -163,12 +165,12 @@ export function JobCard({ job, compact = false }: JobCardProps) {
             activeOpacity={0.85}
           >
             <Ionicons name={applied ? "checkmark" : "send"} size={15} color="#fff" />
-            <Text style={styles.applyBtnText}>{applied ? "Applied" : "Apply Now"}</Text>
+            <Text style={styles.applyBtnText}>{applied ? t("Applied") : t("Apply Now")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.waBtn} onPress={onWhatsApp} activeOpacity={0.8}>
             <MaterialCommunityIcons name="whatsapp" size={17} color="#25D366" />
-            <Text style={styles.waBtnText}>WhatsApp</Text>
+            <Text style={styles.waBtnText}>{t("WhatsApp")}</Text>
           </TouchableOpacity>
         </View>
       )}

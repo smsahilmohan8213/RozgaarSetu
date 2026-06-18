@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { LOCALITIES } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const SUGGESTED_SKILLS = [
   "MS Excel", "Tally", "Hindi Typing", "English Speaking", "Sales",
@@ -55,6 +56,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, logout, savedJobIds, appliedJobIds, postedJobs, deletePostedJob, updateProfile, setEditingJobId, uploadResumeFromDevice, deleteResumeFromStorage, openResume } = useApp();
+  const { t } = useTranslation();
   const isWeb = Platform.OS === "web";
 
   const [showEditModal, setShowEditModal] = useState(false);
@@ -226,7 +228,7 @@ export default function ProfileScreen() {
             activeOpacity={0.8}
           >
             <Ionicons name="card-outline" size={16} color="#fff" />
-            <Text style={styles.shareCardBtnText}>My Card</Text>
+            <Text style={styles.shareCardBtnText}>{t("My Card")}</Text>
           </TouchableOpacity>
         )}
 
@@ -248,7 +250,7 @@ export default function ProfileScreen() {
         <View style={styles.heroBadgeRow}>
           <View style={styles.heroBadge}>
             <Ionicons name={isEmployer ? "business" : "briefcase"} size={12} color="#fff" />
-            <Text style={styles.heroBadgeText}>{isEmployer ? "Employer" : "Job Seeker"}</Text>
+            <Text style={styles.heroBadgeText}>{isEmployer ? t("Employer") : t("Job Seeker")}</Text>
           </View>
           {!isEmployer && user.experience && (
             <View style={styles.heroBadge}>
@@ -287,7 +289,7 @@ export default function ProfileScreen() {
           activeOpacity={0.8}
         >
           <Ionicons name="pencil" size={14} color="#2563EB" />
-          <Text style={styles.editProfileBtnText}>Edit Profile</Text>
+          <Text style={styles.editProfileBtnText}>{t("Edit Profile")}</Text>
         </TouchableOpacity>
       </LinearGradient>
 
@@ -337,10 +339,10 @@ export default function ProfileScreen() {
                 <View style={[styles.cardIconWrap, { backgroundColor: "#DBEAFE" }]}>
                   <Ionicons name="checkmark-circle" size={16} color="#2563EB" />
                 </View>
-                <Text style={styles.cardTitle}>Profile Strength</Text>
+                <Text style={styles.cardTitle}>{t("Profile Strength")}</Text>
               </View>
               <Text style={[styles.scoreLabel, { color: score >= 80 ? "#059669" : score >= 50 ? "#D97706" : "#DC2626" }]}>
-                {score >= 80 ? "Strong" : score >= 50 ? "Good" : "Weak"}
+                {score >= 80 ? t("Strong") : score >= 50 ? t("Good") : t("Weak")}
               </Text>
             </View>
 
@@ -381,7 +383,7 @@ export default function ProfileScreen() {
                 <View style={[styles.cardIconWrap, { backgroundColor: "#EDE9FE" }]}>
                   <Ionicons name="code-slash" size={16} color="#7C3AED" />
                 </View>
-                <Text style={styles.cardTitle}>My Skills</Text>
+                <Text style={styles.cardTitle}>{t("My Skills")}</Text>
               </View>
               <TouchableOpacity
                 style={styles.addBtn}
@@ -389,7 +391,7 @@ export default function ProfileScreen() {
                 activeOpacity={0.8}
               >
                 <Ionicons name="add" size={16} color="#2563EB" />
-                <Text style={styles.addBtnText}>Add</Text>
+                <Text style={styles.addBtnText}>{t("Add")}</Text>
               </TouchableOpacity>
             </View>
 
@@ -413,7 +415,7 @@ export default function ProfileScreen() {
             </View>
 
             {user.skills.length > 0 && (
-              <Text style={styles.skillHint}>Tap a skill to remove it</Text>
+              <Text style={styles.skillHint}>{t("Tap a skill to remove it")}</Text>
             )}
           </View>
 
@@ -424,7 +426,7 @@ export default function ProfileScreen() {
                 <View style={[styles.cardIconWrap, { backgroundColor: "#D1FAE5" }]}>
                   <Ionicons name="person" size={16} color="#059669" />
                 </View>
-                <Text style={styles.cardTitle}>Profile Details</Text>
+                <Text style={styles.cardTitle}>{t("Profile Details")}</Text>
               </View>
               <TouchableOpacity
                 onPress={() => {
@@ -443,18 +445,18 @@ export default function ProfileScreen() {
                 style={styles.editBtn}
               >
                 <Ionicons name="pencil-outline" size={14} color="#2563EB" />
-                <Text style={styles.editBtnText}>Edit</Text>
+                <Text style={styles.editBtnText}>{t("Edit")}</Text>
               </TouchableOpacity>
             </View>
 
-            <DetailRow icon="location-outline" label="Preferred Location" value={user.location} />
-            <DetailRow icon="school-outline" label="Education" value={user.education} />
-            <DetailRow icon="briefcase-outline" label="Experience" value={user.experience} />
-            <DetailRow icon="language-outline" label="Language" value={user.language} />
+            <DetailRow icon="location-outline" label={t("Preferred Location")} value={user.location} />
+            <DetailRow icon="school-outline" label={t("Education")} value={user.education} />
+            <DetailRow icon="briefcase-outline" label={t("Experience")} value={user.experience} />
+            <DetailRow icon="language-outline" label={t("Language")} value={user.language} />
             <DetailRow
               icon="document-text-outline"
               label="Bio"
-              value={user.bio || "Not added yet"}
+              value={user.bio || t("Not added yet")}
               last
             />
           </View>
@@ -470,7 +472,7 @@ export default function ProfileScreen() {
                     color={user.resumeUploaded ? "#059669" : "#DC2626"}
                   />
                 </View>
-                <Text style={styles.cardTitle}>Resume</Text>
+                <Text style={styles.cardTitle}>{t("Resume")}</Text>
               </View>
             </View>
 
@@ -497,7 +499,7 @@ export default function ProfileScreen() {
             ) : (
               <>
                 <Text style={styles.resumeDesc}>
-                  Upload your resume to stand out from other applicants.
+                  {t("Upload your resume to stand out from other applicants.")}
                 </Text>
 
                 <TouchableOpacity
@@ -506,7 +508,7 @@ export default function ProfileScreen() {
                   activeOpacity={0.85}
                 >
                   <Ionicons name="cloud-upload-outline" size={17} color="#fff" />
-                  <Text style={styles.resumeBtnText}>Upload Resume</Text>
+                  <Text style={styles.resumeBtnText}>{t("Upload Resume")}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -562,7 +564,7 @@ export default function ProfileScreen() {
               style={styles.postJobBtnInner}
             >
               <Ionicons name="add-circle" size={22} color="#fff" />
-              <Text style={styles.postJobBtnText}>Post a New Job</Text>
+              <Text style={styles.postJobBtnText}>{t("Post a New Job")}</Text>
             </LinearGradient>
           </TouchableOpacity>
 
@@ -572,15 +574,15 @@ export default function ProfileScreen() {
                 <View style={[styles.cardIconWrap, { backgroundColor: "#DBEAFE" }]}>
                   <Ionicons name="briefcase" size={16} color="#2563EB" />
                 </View>
-                <Text style={styles.cardTitle}>My Job Listings</Text>
+                <Text style={styles.cardTitle}>{t("My Job Listings")}</Text>
               </View>
-              <Text style={styles.listingCount}>{postedJobs.length} active</Text>
+              <Text style={styles.listingCount}>{postedJobs.length} {t("active")}</Text>
             </View>
 
             {postedJobs.length === 0 ? (
               <View style={styles.emptyPosted}>
                 <Ionicons name="briefcase-outline" size={36} color="#CBD5E1" />
-                <Text style={styles.emptyPostedText}>No jobs posted yet</Text>
+                <Text style={styles.emptyPostedText}>{t("No jobs posted yet")}</Text>
               </View>
             ) : (
               postedJobs.map((job, idx) => (
@@ -597,13 +599,13 @@ export default function ProfileScreen() {
                     <View style={styles.postedBadges}>
                       {job.isUrgent && (
                         <View style={styles.urgentBadge}>
-                          <Text style={styles.urgentText}>Urgent</Text>
+                          <Text style={styles.urgentText}>{t("Urgent")}</Text>
                         </View>
                       )}
                       <Text style={styles.postedTime}>{job.postedTime}</Text>
                       <View style={styles.applicantBadge}>
                         <Ionicons name="people" size={12} color="#059669" />
-                        <Text style={styles.applicantText}>{job.applicants} applicants</Text>
+                        <Text style={styles.applicantText}>{job.applicants} {t("applicants")}</Text>
                       </View>
                     </View>
                   </View>
@@ -635,12 +637,12 @@ export default function ProfileScreen() {
             <View style={[styles.cardIconWrap, { backgroundColor: "#F1F5F9" }]}>
               <Ionicons name="settings" size={16} color="#475569" />
             </View>
-            <Text style={styles.cardTitle}>Settings</Text>
+            <Text style={styles.cardTitle}>{t("Settings")}</Text>
           </View>
         </View>
         
         {!isEmployer && (
-          <MenuItem icon="bookmark-outline" label="Saved Jobs" onPress={() => router.push("/(tabs)/saved")} />
+          <MenuItem icon="bookmark-outline" label={t("Saved Jobs")} onPress={() => router.push("/(tabs)/saved")} />
         )}
         <MenuItem 
           icon="language-outline" 
@@ -659,9 +661,9 @@ export default function ProfileScreen() {
             setShowEditModal(true);
           }} 
         />
-        <MenuItem icon="notifications-outline" label="Notifications" onPress={() => router.push("/notifications")} />
-        <MenuItem icon="help-circle-outline" label="Help & Support" />
-        <MenuItem icon="log-out-outline" label="Log Out" onPress={handleLogout} isDestructive last />
+        <MenuItem icon="notifications-outline" label={t("Notifications")} onPress={() => router.push("/notifications")} />
+        <MenuItem icon="help-circle-outline" label={t("Help & Support")} />
+        <MenuItem icon="log-out-outline" label={t("Log Out")} onPress={handleLogout} isDestructive last />
       </View>
 
       {/* ── ADMIN PANEL (hidden access via special phone) ── */}
@@ -675,8 +677,8 @@ export default function ProfileScreen() {
             <Ionicons name="shield" size={18} color="#4338CA" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.adminPanelTitle}>Admin Panel</Text>
-            <Text style={styles.adminPanelSub}>Manage jobs, verifications & reports</Text>
+            <Text style={styles.adminPanelTitle}>{t("Admin Panel")}</Text>
+            <Text style={styles.adminPanelSub}>{t("Manage jobs, verifications & reports")}</Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color="#4338CA" />
         </TouchableOpacity>
@@ -686,7 +688,7 @@ export default function ProfileScreen() {
       <Modal visible={showEditModal} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Edit Profile</Text>
+            <Text style={styles.modalTitle}>{t("Edit Profile")}</Text>
             <TouchableOpacity onPress={() => setShowEditModal(false)} style={styles.modalClose}>
               <Ionicons name="close" size={22} color="#0F172A" />
             </TouchableOpacity>
@@ -795,10 +797,10 @@ export default function ProfileScreen() {
 
           <View style={styles.modalFooter}>
             <TouchableOpacity style={styles.saveBtnCancel} onPress={() => setShowEditModal(false)}>
-              <Text style={styles.saveBtnCancelText}>Cancel</Text>
+              <Text style={styles.saveBtnCancelText}>{t("Cancel")}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile} activeOpacity={0.85}>
-              <Text style={styles.saveBtnText}>Save Changes</Text>
+              <Text style={styles.saveBtnText}>{t("Save Changes")}</Text>
             </TouchableOpacity>
           </View>
         </View>

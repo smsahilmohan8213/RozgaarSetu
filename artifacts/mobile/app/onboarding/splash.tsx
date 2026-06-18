@@ -3,11 +3,13 @@ import React, { useEffect } from "react";
 import { View, Text, StyleSheet, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColors } from "@/hooks/useColors";
+import { useTranslation } from "@/hooks/useTranslation";
 import * as SplashScreen from "expo-splash-screen";
 
 export default function AppSplashScreen() {
   const router = useRouter();
   const colors = useColors();
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Hide the native splash screen immediately, since we are showing our custom one

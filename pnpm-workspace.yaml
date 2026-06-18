@@ -161,4 +161,5 @@ overrides:
 
 allowBuilds:
   '@firebase/util': false
+  esbuild: set this to true or false
   protobufjs: false

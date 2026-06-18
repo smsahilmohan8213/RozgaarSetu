@@ -2,6 +2,7 @@ import React from "react";
 import { Modal, View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
+import { useTranslation } from "@/hooks/useTranslation";
 import { useRouter } from "expo-router";
 
 interface AuthModalProps {
@@ -15,6 +16,7 @@ interface AuthModalProps {
 export function AuthModal({ visible, onClose, title = "Sign in to continue", description = "Create an account to unlock all RozgaarSetu features.", maybeLaterText = "Maybe Later" }: AuthModalProps) {
   const colors = useColors();
   const router = useRouter();
+  const { t } = useTranslation();
 
   if (!visible) return null;
 
@@ -43,7 +45,7 @@ export function AuthModal({ visible, onClose, title = "Sign in to continue", des
             }}
           >
             <Ionicons name="logo-google" size={20} color="#EA4335" />
-            <Text style={[styles.btnText, { color: colors.foreground }]}>Continue with Google</Text>
+            <Text style={[styles.btnText, { color: colors.foreground }]}>{t("Continue with Google")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -54,7 +56,7 @@ export function AuthModal({ visible, onClose, title = "Sign in to continue", des
             }}
           >
             <Ionicons name="call" size={20} color={colors.primary} />
-            <Text style={[styles.btnText, { color: colors.foreground }]}>Continue with Phone</Text>
+            <Text style={[styles.btnText, { color: colors.foreground }]}>{t("Continue with Phone")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

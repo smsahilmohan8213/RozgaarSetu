@@ -439,7 +439,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     console.log("[auth] login:loadSupabaseProfileFromSession:ok", { userId, loaded: Boolean(loadedUser) });
 
     const newUser = loadedUser ?? {
-      ...DEFAULT_USER,
+      ...user, // Preserve current state like language
       name,
       phone,
       role,

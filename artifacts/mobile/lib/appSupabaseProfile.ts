@@ -75,37 +75,33 @@ export async function loadSupabaseProfileFromSession() {
       // If profile doesn't exist yet, do nothing here.
       return;
     }
+    }
 
     const role = (profileRow.role as UserRole) ?? null;
 
     const resumePath = (profileRow.resume_path as string | null) ?? null;
     const resumeUrl = (profileRow.resume_url as string | null) ?? null;
 
+    const existingStr = await AsyncStorage.getItem("@rozgaar_user");
+    const existing = existingStr ? JSON.parse(existingStr) : {};
+
     const next: UserProfile = {
       ...DEFAULT_USER,
-      name: profileRow.full_name ?? "",
-      phone: profileRow.phone ?? "",
-      role,
+      ...existing, // preserve language, location, skills etc. from local state
+      name: profileRow.full_name ?? existing.name ?? "",
+      phone: profileRow.phone ?? existing.phone ?? "",
+      role: role ?? existing.role,
       isAuthenticated: true,
-      // Keep Phase-1 parity: location/skills/... are defaults until UI migrates.
-      location: DEFAULT_USER.location,
-      skills: DEFAULT_USER.skills,
-      experience: DEFAULT_USER.experience,
-      education: DEFAULT_USER.education,
-      language: DEFAULT_USER.language,
-      bio: DEFAULT_USER.bio,
-      resumeUploaded: Boolean(resumeUrl ?? resumePath),
+      resumeUploaded: Boolean(resumeUrl ?? resumePath ?? existing.resumeUploaded),
       resumeName: (() => {
         if (resumePath) {
           const parts = resumePath.split("/");
-          const last = parts[parts.length - 1];
-          return last || DEFAULT_USER.resumeName;
+          return parts[parts.length - 1] || existing.resumeName || DEFAULT_USER.resumeName;
         }
-        return "resume.pdf";
+        return existing.resumeName || "resume.pdf";
       })(),
-      // UI uses resumeUri as an openable URL.
-      resumeUri: resumeUrl ?? "",
-      profileScore: DEFAULT_USER.profileScore,
+      resumeUri: resumeUrl ?? existing.resumeUri ?? "",
+      profileScore: existing.profileScore ?? DEFAULT_USER.profileScore,
     };
 
     next.profileScore = computeScore(next);

@@ -169,7 +169,7 @@ export default function JobsScreen() {
                style={[styles.empTab, employerTab === tab && styles.empTabActive]}
                onPress={() => setEmployerTab(tab)}
              >
-               <Text style={[styles.empTabText, employerTab === tab && styles.empTabTextActive]}>{tab}</Text>
+               <Text style={[styles.empTabText, employerTab === tab && styles.empTabTextActive]}>{t(tab)}</Text>
              </TouchableOpacity>
           ))}
         </View>
@@ -181,10 +181,10 @@ export default function JobsScreen() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <EmptyJobsState
-              title="No Jobs Posted"
-              text={employerTab === "All" ? "Create your first listing and start receiving applicants." : `You have no ${employerTab.toLowerCase()} jobs.`}
-              actionLabel="Post Job"
-              onAction={() => requireAuth(() => router.push("/post-job"), { title: "Sign in to Post Job", description: "Create an employer account to post jobs.", maybeLaterText: "Maybe Later" })}
+              title={t("No Jobs Posted")}
+              text={employerTab === "All" ? t("Post your first job to start receiving applicants.") : `You have no ${employerTab.toLowerCase()} jobs.`}
+              actionLabel={t("Post Job")}
+              onAction={() => requireAuth(() => router.push("/post-job"), { title: t("Sign in to continue"), description: t("Create an account to unlock all RozgaarSetu features."), maybeLaterText: t("Maybe Later") })}
               colors={colors}
             />
           }
@@ -240,7 +240,7 @@ export default function JobsScreen() {
               onPress={() => setQuickFilter(chip)}
             >
               <Text style={[styles.catText, { color: quickFilter === chip ? "#fff" : colors.foreground }]}>
-                {chip}
+                {t(chip)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -254,11 +254,11 @@ export default function JobsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.list, { paddingBottom: isWeb ? 100 : 110 }]}
         showsVerticalScrollIndicator={false}
-        ListHeaderComponent={<Text style={styles.count}>{filteredSeekerJobs.length} {t("jobs found") || "jobs found"}</Text>}
+        ListHeaderComponent={<Text style={styles.count}>{filteredSeekerJobs.length} {t("jobs found")}</Text>}
         ListEmptyComponent={
             <EmptyJobsState
-            title={search ? "No search results" : "No jobs found"}
-            text={search ? "Try checking for typos or searching a different keyword." : "Try adjusting your filters or categories to find more jobs."}
+            title={search ? t("No search results") : t("No jobs found")}
+            text={search ? t("Try checking for typos or searching a different keyword.") : t("Try adjusting your filters or categories to find more jobs.")}
             onAction={() => {
               setSearch("");
               setQuickFilter("All");
@@ -268,7 +268,7 @@ export default function JobsScreen() {
               setExperienceFilter([]);
               setLocationFilter([]);
             }}
-            actionLabel="Clear Filters"
+            actionLabel={t("Clear Filters")}
             colors={colors}
           />
         }
@@ -299,7 +299,7 @@ export default function JobsScreen() {
               ))}
             </View>
 
-            <Text style={styles.filterSectionTitle}>Job Type</Text>
+            <Text style={styles.filterSectionTitle}>{t("Job Type")}</Text>
             <View style={styles.filterOptionsGrid}>
               {JOB_TYPES.map((type) => (
                 <TouchableOpacity
@@ -314,7 +314,7 @@ export default function JobsScreen() {
               ))}
             </View>
 
-            <Text style={styles.filterSectionTitle}>Minimum Salary</Text>
+            <Text style={styles.filterSectionTitle}>{t("Minimum Salary")}</Text>
             <View style={styles.filterOptionsGrid}>
               {SALARY_OPTIONS.map((opt) => (
                 <TouchableOpacity
@@ -329,7 +329,7 @@ export default function JobsScreen() {
               ))}
             </View>
 
-            <Text style={styles.filterSectionTitle}>Experience Level</Text>
+            <Text style={styles.filterSectionTitle}>{t("Experience Level")}</Text>
             <View style={styles.filterOptionsGrid}>
               {EXPERIENCE_OPTIONS.map((exp) => (
                 <TouchableOpacity
@@ -344,7 +344,7 @@ export default function JobsScreen() {
               ))}
             </View>
 
-            <Text style={styles.filterSectionTitle}>Location</Text>
+            <Text style={styles.filterSectionTitle}>{t("Location")}</Text>
             <View style={styles.filterOptionsGrid}>
               {LOCATION_OPTIONS.map((loc) => (
                 <TouchableOpacity

@@ -50,16 +50,8 @@ export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
   const { user, selectedLocality, setSelectedLocality, postedJobs, applications, savedJobIds, requireAuth } = useApp();
-  const [search, setSearch] = useState("");
-  const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const isWeb = Platform.OS === "web";
-  const [employerMetrics, setEmployerMetrics] = useState({ activeJobs: 0, totalApplicants: 0, jobsPosted: 0, upcomingInterviews: 0 });
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const { t } = useTranslation();
-
-  const seekerAppsCount = useMemo(() => applications.filter(a => a.name === user.name || a.name === "Guest User" || a.phone === user.phone).length, [applications, user]);
-  const seekerInterviewsCount = useMemo(() => applications.filter(a => (a.name === user.name || a.name === "Guest User" || a.phone === user.phone) && a.status === "interview").length, [applications, user]);
+  const [search, setSearch] = useState("");
 
   const requireAuthAction = (action: () => void, options?: { title?: string; description?: string; maybeLaterText?: string }) => {
     requireAuth(action, options);
@@ -164,34 +156,34 @@ export default function HomeScreen() {
           end={{ x: 1, y: 1 }}
           style={[styles.hero, { paddingTop: isWeb ? 44 : 24 }]}
         >
-          <Text style={styles.heroKicker}>Employer dashboard</Text>
-          <Text style={styles.heroTitle}>Hire faster with a cleaner job desk</Text>
+          <Text style={styles.heroKicker}>{t("Employer dashboard")}</Text>
+          <Text style={styles.heroTitle}>{t("Hire faster with a cleaner job desk")}</Text>
           <Text style={styles.heroSub}>
-            Track active jobs, applicants, and posting flow from one place.
+            {t("Track active jobs, applicants, and posting flow from one place.")}
           </Text>
 
           <View style={styles.dashboardGrid}>
-            <DashboardCard label="Active Jobs" value={String(employerMetrics.activeJobs)} icon="briefcase" />
-            <DashboardCard label="Applicants" value={String(employerMetrics.totalApplicants)} icon="people" />
-            <DashboardCard label="Interviews" value={String(employerMetrics.upcomingInterviews)} icon="calendar" />
-            <DashboardCard label="Jobs Posted" value={String(employerMetrics.jobsPosted)} icon="document-text" />
+            <DashboardCard label={t("Active Jobs")} value={String(employerMetrics.activeJobs)} icon="briefcase" />
+            <DashboardCard label={t("Applicants")} value={String(employerMetrics.totalApplicants)} icon="people" />
+            <DashboardCard label={t("Interviews")} value={String(employerMetrics.upcomingInterviews)} icon="calendar" />
+            <DashboardCard label={t("Jobs Posted")} value={String(employerMetrics.jobsPosted)} icon="document-text" />
           </View>
 
           <View style={styles.quickActionsRow}>
             <DashboardAction
               icon="add-circle"
-              label="Post Job"
-              onPress={() => requireAuthAction(() => router.push("/post-job"), { title: "Sign in to Post Job", description: "Create an employer account to post jobs.", maybeLaterText: "Maybe Later" })}
+              label={t("Post Job")}
+              onPress={() => requireAuthAction(() => router.push("/post-job"), { title: t("Sign in to Post Job"), description: t("Create an employer account to post jobs."), maybeLaterText: t("Maybe Later") })}
               highlighted
             />
             <DashboardAction
               icon="briefcase"
-              label="Manage Jobs"
-              onPress={() => requireAuthAction(() => router.push("/(tabs)/jobs"), { title: "Sign in to Manage Jobs", description: "Create an employer account to manage your jobs.", maybeLaterText: "Maybe Later" })}
+              label={t("Manage Jobs")}
+              onPress={() => requireAuthAction(() => router.push("/(tabs)/jobs"), { title: t("Sign in to Manage Jobs"), description: t("Create an employer account to manage your jobs."), maybeLaterText: t("Maybe Later") })}
             />
             <DashboardAction
               icon="people"
-              label="View Applicants"
+              label={t("View Applicants")}
               onPress={() => requireAuthAction(() => {
                 const firstJob = postedJobs[0];
                 if (firstJob) {
@@ -199,12 +191,12 @@ export default function HomeScreen() {
                 } else {
                   router.push("/(tabs)/jobs");
                 }
-              }, { title: "Sign in to View Applicants", description: "Create an employer account to view applicants.", maybeLaterText: "Maybe Later" })}
+              }, { title: t("Sign in to View Applicants"), description: t("Create an employer account to view applicants."), maybeLaterText: t("Maybe Later") })}
             />
           </View>
         </LinearGradient>
 
-        <SectionHeader title={t("Live Listings")} subtitle={`${postedJobs.length} active jobs`} />
+        <SectionHeader title={t("Live Listings")} subtitle={`${postedJobs.length} ${t("active jobs")}`} />
         {loading ? (
           <>
             <SkeletonCard />
@@ -213,10 +205,10 @@ export default function HomeScreen() {
         ) : postedJobs.length === 0 ? (
           <EmptyState
             icon="briefcase-outline"
-            title="No jobs yet"
-            text="Post your first job to start receiving applicants."
-            actionLabel="Post Job"
-            onAction={() => requireAuthAction(() => router.push("/post-job"), { title: "Sign in to Post Job", description: "Create an employer account to post jobs.", maybeLaterText: "Maybe Later" })}
+            title={t("No jobs yet")}
+            text={t("Post your first job to start receiving applicants.")}
+            actionLabel={t("Post Job")}
+            onAction={() => requireAuthAction(() => router.push("/post-job"), { title: t("Sign in to Post Job"), description: t("Create an employer account to post jobs."), maybeLaterText: t("Maybe Later") })}
           />
         ) : (
           postedJobs.slice(0, 4).map((job) => (
@@ -235,7 +227,7 @@ export default function HomeScreen() {
             onPress={() => router.push(`/employer/applicants/${[...postedJobs].sort((a,b) => b.applicants - a.applicants)[0].id}`)}
           />
         ) : (
-          <EmptyInline title="No data yet" text="Your top performing job will appear here." />
+          <EmptyInline title={t("No data yet")} text={t("Your top performing job will appear here.")} />
         )}
 
         <SectionHeader title={t("Recent Applicants")} subtitle={t("Candidates who applied recently")} />
@@ -252,11 +244,11 @@ export default function HomeScreen() {
                style={styles.raBtn}
                onPress={() => router.push(`/employer/applicants/${app.jobId}`)}
              >
-               <Text style={styles.raBtnText}>Review</Text>
+               <Text style={styles.raBtnText}>{t("Review")}</Text>
              </TouchableOpacity>
            </View>
         )) : (
-          <EmptyInline title="No applicants yet" text="When job seekers apply, they'll appear here." />
+          <EmptyInline title={t("No applicants yet")} text={t("When job seekers apply, they'll appear here.")} />
         )}
 
         <SectionHeader title={t("Upcoming Interviews")} subtitle={t("Interviews scheduled")} />
@@ -274,11 +266,11 @@ export default function HomeScreen() {
                style={styles.raBtn}
                onPress={() => router.push(`/employer/applicants/${app.jobId}`)}
              >
-               <Text style={styles.raBtnText}>View</Text>
+               <Text style={styles.raBtnText}>{t("View")}</Text>
              </TouchableOpacity>
            </View>
         )) : (
-          <EmptyInline title="No interviews scheduled" text="Shortlist applicants to schedule interviews." />
+          <EmptyInline title={t("No interviews scheduled")} text={t("Shortlist applicants to schedule interviews.")} />
         )}
 
 
@@ -289,8 +281,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <SearchHeader
-        greeting={getGreeting()}
-        name={user.isAuthenticated ? user.name : "Guest"}
+        greeting={`${t(getGreeting())}${user.name && user.name !== "Guest User" ? `, ${user.name}` : ""}`}
         searchValue={search}
         onSearchChange={setSearch}
         onNotification={() => router.push("/notifications")}
@@ -310,15 +301,15 @@ export default function HomeScreen() {
               {!user.isAuthenticated && (
                 <TouchableOpacity
                   style={styles.signInPromoCard}
-                  onPress={() => requireAuthAction(() => {}, { title: "Sign in to continue", description: "Create an account to unlock all RozgaarSetu features.", maybeLaterText: "Maybe Later" })}
+                  onPress={() => requireAuthAction(() => {}, { title: t("Sign in to continue"), description: t("Create an account to unlock all RozgaarSetu features."), maybeLaterText: t("Maybe Later") })}
                   activeOpacity={0.9}
                 >
                   <View style={styles.signInPromoIconWrap}>
                     <Ionicons name="person-circle" size={46} color="#94A3B8" />
                   </View>
                   <View style={styles.signInPromoTextContainer}>
-                    <Text style={styles.signInPromoTitle}>{t("Sign in for Better Matches") || "Sign in for Better Matches"}</Text>
-                    <Text style={styles.signInPromoSub}>{t("Get personalized job alerts near you") || "Get personalized job alerts near you"}</Text>
+                    <Text style={styles.signInPromoTitle}>{t("Sign in for Better Matches")}</Text>
+                    <Text style={styles.signInPromoSub}>{t("Get personalized job alerts near you")}</Text>
                   </View>
                   <View style={styles.signInPromoBtn}>
                     <Ionicons name="arrow-forward" size={18} color="#fff" />
@@ -332,7 +323,7 @@ export default function HomeScreen() {
                   end={{ x: 1, y: 1 }}
                   style={styles.seekerHero}
                 >
-                  <Text style={styles.seekerHeroTitle}>{getGreeting()}, {user.name.split(" ")[0] || t("Guest")}{"\n"}{t("Find jobs near you")}</Text>
+                  <Text style={styles.seekerHeroTitle}>{t(getGreeting())}, {user.name.split(" ")[0] || t("Guest")}{"\n"}{t("Find jobs near you")}</Text>
                   <Text style={styles.seekerHeroSub}>{t("Explore thousands of local opportunities tailored for you.")}</Text>
                   <TouchableOpacity style={styles.seekerHeroBtn} onPress={() => router.push("/(tabs)/jobs")}>
                     <Text style={styles.seekerHeroBtnText}>{t("Quick Apply")}</Text>
@@ -343,9 +334,18 @@ export default function HomeScreen() {
 
               {user.isAuthenticated && (
                 <View style={[styles.dashboardGrid, { marginTop: 16 }]}>
-                                     <DashboardCard label="Applications" value={String(seekerAppsCount)} icon="document-text" onPress={() => requireAuthAction(() => router.push("/applications" as any))} />
-                                     <DashboardCard label="Interviews" value={String(seekerInterviewsCount)} icon="calendar" onPress={() => requireAuthAction(() => router.push("/applications" as any))} />
-                                   <DashboardCard label="Saved Jobs" value={String(savedJobIds.length)} icon="bookmark" onPress={() => requireAuthAction(() => router.push("/(tabs)/saved"))} />
+                   <View style={styles.statBox}>
+                      <Text style={[styles.statValue, { color: "#2563EB" }]}>{seekerAppsCount}</Text>
+                      <Text style={styles.statLabel}>{t("Applications")}</Text>
+                    </View>
+                    <View style={styles.statBox}>
+                      <Text style={[styles.statValue, { color: "#059669" }]}>{seekerInterviewsCount}</Text>
+                      <Text style={styles.statLabel}>{t("Interviews")}</Text>
+                    </View>
+                    <View style={styles.statBox}>
+                      <Text style={[styles.statValue, { color: "#D97706" }]}>{savedJobIds.length}</Text>
+                      <Text style={styles.statLabel}>{t("Saved Jobs")}</Text>
+                    </View>
                 </View>
               )}
 
@@ -390,7 +390,7 @@ export default function HomeScreen() {
                         </View>
                         <Text style={styles.trendingName} numberOfLines={1}>{company.name}</Text>
                         <TouchableOpacity style={styles.trendingApplyBtn} onPress={() => router.push("/(tabs)/jobs")}>
-                          <Text style={styles.trendingApplyText}>View Jobs</Text>
+                          <Text style={styles.trendingApplyText}>{t("View Jobs")}</Text>
                         </TouchableOpacity>
                       </View>
                     ))}
@@ -400,7 +400,7 @@ export default function HomeScreen() {
             </View>
 
             {search.length > 0 ? (
-              <SectionHeader title={`Results for "${search}"`} subtitle={`${filteredJobs.length} matches`} />
+              <SectionHeader title={`${t("Results for")} "${search}"`} subtitle={`${filteredJobs.length} ${t("matches")}`} />
             ) : (
               <>
                 {user.isAuthenticated && (
@@ -422,8 +422,8 @@ export default function HomeScreen() {
                       </ScrollView>
                     ) : (
                       <EmptyInline
-                        title="No nearby jobs"
-                        text="Try another locality or refresh for more listings."
+                        title={t("No nearby jobs")}
+                        text={t("Try another locality or refresh for more listings.")}
                       />
                     )}
                   </>
@@ -431,8 +431,8 @@ export default function HomeScreen() {
 
                 <SectionHeader
                   title={t("Urgent Hiring")}
-                  subtitle={`${urgentJobs.length} active openings`}
-                  onSeeAll={() => router.push("/(tabs)/jobs")}
+                  subtitle={`${urgentJobs.length} ${t("active openings")}`}
+                  onSeeAll={() => router.push("/(tabs)/jobs?filter=urgent")}
                 />
                 {loading ? (
                   <HorizontalSkeleton />
@@ -445,7 +445,7 @@ export default function HomeScreen() {
                     ))}
                   </ScrollView>
                 ) : (
-                  <EmptyInline title="No urgent jobs" text="There are no urgent listings right now." />
+                  <EmptyInline title={t("No urgent jobs")} text={t("There are no urgent listings right now.")} />
                 )}
 
                 <SectionHeader
@@ -461,7 +461,7 @@ export default function HomeScreen() {
                 ) : featuredJobs.length > 0 ? (
                   featuredJobs.slice(0, 4).map((job) => <JobCard key={job.id} job={job} />)
                 ) : (
-                  <EmptyInline title="No featured jobs" text="Featured listings will appear here soon." />
+                  <EmptyInline title={t("No featured jobs")} text={t("Featured listings will appear here soon.")} />
                 )}
 
                 {!user.isAuthenticated && (
@@ -475,7 +475,7 @@ export default function HomeScreen() {
                           </View>
                           <Text style={styles.trendingName} numberOfLines={1}>{company.name}</Text>
                           <TouchableOpacity style={styles.trendingApplyBtn} onPress={() => router.push("/(tabs)/jobs")}>
-                            <Text style={styles.trendingApplyText}>View Jobs</Text>
+                            <Text style={styles.trendingApplyText}>{t("View Jobs")}</Text>
                           </TouchableOpacity>
                         </View>
                       ))}
@@ -498,7 +498,7 @@ export default function HomeScreen() {
                     ) : recommendedJobs.length > 0 ? (
                       recommendedJobs.slice(0, 4).map((job) => <JobCard key={job.id} job={job} />)
                     ) : (
-                      <EmptyInline title="No recommendations yet" text="Check back after saving or applying to jobs." />
+                      <EmptyInline title={t("No recommendations yet")} text={t("Check back after saving or applying to jobs.")} />
                     )}
 
                     <SectionHeader
@@ -514,13 +514,13 @@ export default function HomeScreen() {
                             <Text style={styles.companyName} numberOfLines={1}>
                               {company.name}
                             </Text>
-                            <Text style={styles.companyMeta}>{company.count} openings</Text>
-                            <Text style={styles.companyHint}>{company.urgent} urgent</Text>
+                            <Text style={styles.companyMeta}>{company.count} {t("openings")}</Text>
+                            <Text style={styles.companyHint}>{company.urgent} {t("urgent")}</Text>
                           </View>
                         ))}
                       </ScrollView>
                     ) : (
-                      <EmptyInline title="No companies yet" text="Company highlights will appear here." />
+                      <EmptyInline title={t("No companies yet")} text={t("Company highlights will appear here.")} />
                     )}
                   </>
                 )}

@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface SearchHeaderProps {
   greeting?: string;
@@ -35,6 +36,7 @@ export function SearchHeader({
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, requireAuth, setLanguage } = useApp();
+  const { t } = useTranslation();
   const isWeb = Platform.OS === "web";
   
   const currentLang = user?.language || "English";
@@ -103,7 +105,7 @@ export function SearchHeader({
                   <Ionicons name="close" size={20} color="#475569" />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.modalTitle}>Choose Language</Text>
+              <Text style={styles.modalTitle}>{t("Choose Language")}</Text>
 
               {[
                 "English",
@@ -137,7 +139,7 @@ export function SearchHeader({
                 }}
                 activeOpacity={0.85}
               >
-                <Text style={styles.continueText}>Continue</Text>
+                <Text style={styles.continueText}>{t("Continue")}</Text>
               </TouchableOpacity>
             </View>
           </SafeAreaView>
@@ -148,7 +150,7 @@ export function SearchHeader({
           <Ionicons name="search" size={18} color={colors.mutedForeground} />
           <TextInput
             style={[styles.searchInput, { color: colors.foreground }]}
-            placeholder="Search jobs, companies, skills..."
+            placeholder={t("Search jobs, companies, skills...")}
             placeholderTextColor={colors.mutedForeground}
             value={searchValue}
             onChangeText={onSearchChange}
