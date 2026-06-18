@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
+import { useApp } from "@/context/AppContext";
 
 interface SearchHeaderProps {
   greeting?: string;
@@ -26,17 +27,21 @@ interface SearchHeaderProps {
 
 export function SearchHeader({
   greeting = "Good morning",
-  name = "there",
+  name = "Guest",
   searchValue,
   onSearchChange,
   onNotification,
 }: SearchHeaderProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { user, requireAuth, setLanguage } = useApp();
   const isWeb = Platform.OS === "web";
-  const [language, setLanguage] = useState("Eng");
+  
+  const currentLang = user?.language || "English";
+  const displayLang = currentLang === "English" ? "Eng" : currentLang === "Hinglish" ? "Hinglish" : "हिन्दी";
+
   const [modalVisible, setModalVisible] = useState(false);
-  const [pendingLang, setPendingLang] = useState<string>(language);
+  const [pendingLang, setPendingLang] = useState<string>(currentLang);
 
   return (
     <View style={styles.wrapper}>
@@ -59,18 +64,18 @@ export function SearchHeader({
             <TouchableOpacity
               style={styles.langBtn}
               onPress={() => {
-                setPendingLang(language);
+                setPendingLang(currentLang);
                 setModalVisible(true);
               }}
               activeOpacity={0.75}
             >
               <Ionicons name="language" size={16} color="#fff" />
-              <Text style={styles.langText}>{language}</Text>
+              <Text style={styles.langText}>{displayLang}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.notifBtn}
-              onPress={onNotification}
+              onPress={() => requireAuth(onNotification || (() => {}), { title: "Sign in required", description: "Sign in to view notifications", maybeLaterText: "Continue as Guest Later" })}
               activeOpacity={0.75}
             >
               <Ionicons name="notifications" size={20} color="#fff" />
@@ -101,11 +106,12 @@ export function SearchHeader({
               <Text style={styles.modalTitle}>Choose Language</Text>
 
               {[
-                "Eng",
+                "English",
                 "Hinglish",
-                "हिन्दी",
+                "Hindi",
               ].map((item) => {
                 const selected = pendingLang === item;
+                const displayLabel = item === "Hindi" ? "हिन्दी" : item;
                 return (
                   <Pressable
                     key={item}
@@ -114,7 +120,7 @@ export function SearchHeader({
                     android_ripple={{ color: "rgba(30,64,175,0.08)" }}
                   >
                     <Text style={[styles.optionCardText, selected && styles.optionCardTextSelected]}>
-                      {item}
+                      {displayLabel}
                     </Text>
                     <View style={[styles.radioOuter, selected && styles.radioOuterSelected]}>
                       {selected && <View style={styles.radioInner} />}

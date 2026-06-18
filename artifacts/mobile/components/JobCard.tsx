@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
+  Image,
   Linking,
   Platform,
   StyleSheet,
@@ -80,10 +81,14 @@ export function JobCard({ job, compact = false }: JobCardProps) {
       )}
 
       <View style={styles.header}>
-        <View style={[styles.logo, { backgroundColor: job.logoColor + "18" }]}>
-          <Text style={[styles.logoText, { color: job.logoColor }]}>
-            {job.logoInitials}
-          </Text>
+        <View style={[styles.logo, { backgroundColor: job.logoColor + "18", padding: job.logo ? 6 : 0 }]}>
+          {job.logo ? (
+            <Image source={job.logo} style={{ width: "100%", height: "100%", borderRadius: 10 }} resizeMode="contain" />
+          ) : (
+            <Text style={[styles.logoText, { color: job.logoColor }]}>
+              {job.logoInitials}
+            </Text>
+          )}
         </View>
 
         <View style={styles.headerMeta}>

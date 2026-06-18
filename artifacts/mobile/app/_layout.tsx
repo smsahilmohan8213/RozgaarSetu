@@ -27,10 +27,15 @@ function RootLayoutNav() {
       <StatusBar style="dark" backgroundColor="#EEF2FF" translucent={false} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="auth/index" options={{ presentation: "modal", headerShown: false }} />
         <Stack.Screen name="job/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="apply/[id]" options={{ presentation: "modal", headerShown: false }} />
         <Stack.Screen name="post-job/index" options={{ presentation: "modal", headerShown: false }} />
+        <Stack.Screen name="notifications" options={{ headerShown: false }} />
+        <Stack.Screen name="applications" options={{ headerShown: false }} />
+        <Stack.Screen name="employer" options={{ headerShown: false }} />
+        <Stack.Screen name="admin" options={{ headerShown: false }} />
       </Stack>
     </>
   );

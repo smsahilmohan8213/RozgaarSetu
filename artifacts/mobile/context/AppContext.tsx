@@ -79,10 +79,12 @@ interface AppContextType {
   hasOnboarded: boolean;
   completeOnboarding: () => Promise<void>;
   setGuestRole: (role: UserRole) => Promise<void>;
-  requireAuth: (action: () => void) => void;
+  setLanguage: (lang: string) => Promise<void>;
+  requireAuth: (action: () => void, options?: { title?: string; description?: string; maybeLaterText?: string }) => void;
   applications: Applicant[];
   updateMockApplicationStatus: (appId: string, status: ApplicantStatus) => void;
   scheduleInterview: (appId: string, date: string, time: string) => void;
+  isReady: boolean;
 }
 
 
@@ -163,6 +165,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [hasOnboarded, setHasOnboarded] = useState<boolean>(false);
   const [isAuthModalVisible, setIsAuthModalVisible] = useState(false);
+  const [authModalOptions, setAuthModalOptions] = useState<{ title?: string; description?: string; maybeLaterText?: string }>({});
+  const [isReady, setIsReady] = useState(false);
 
   // Job ids are expected to be UUIDs end-to-end (public.jobs.id + FK columns).
   // Removed best-effort UUID detection to avoid legacy non-UUID fallbacks.
@@ -378,6 +382,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (_) {}
     finally {
       setIsHydratingSavedJobs(false);
+      setIsReady(true);
     }
   }
 
@@ -386,14 +391,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem("@rozgaar_onboarded", "true");
   }
 
-  async function setGuestRole(role: UserRole) {
-    const updated = { ...user, role, isAuthenticated: false };
+  async function setLanguage(lang: string) {
+    const updated: UserProfile = { ...user, language: lang };
     setUser(updated);
     await AsyncStorage.setItem("@rozgaar_user", JSON.stringify(updated));
   }
 
-  function requireAuth(action: () => void) {
+  async function setGuestRole(role: UserRole) {
+    const updated = { ...user, role, isAuthenticated: false };
+    setUser(updated);
+    await AsyncStorage.setItem("@rozgaar_user", JSON.stringify(updated));
+    await completeOnboarding();
+  }
+
+  function requireAuth(action: () => void, options?: { title?: string; description?: string; maybeLaterText?: string }) {
     if (!user.isAuthenticated) {
+      if (options) {
+        setAuthModalOptions(options);
+      } else {
+        setAuthModalOptions({});
+      }
       setIsAuthModalVisible(true);
     } else {
       action();
@@ -789,8 +806,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: "interview", interviewDate: date, interviewTime: time } : a));
   }
 
-
-
   async function postJob(draft: DraftJob) {
     // Production: job creation must be persisted to Supabase as source of truth.
     // Supabase `jobs.id` is UUID; do not generate local ids.
@@ -990,14 +1005,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         hasOnboarded,
         completeOnboarding,
         setGuestRole,
+        setLanguage,
         requireAuth,
         applications,
         updateMockApplicationStatus,
         scheduleInterview,
+        isReady,
       }}
     >
       {children}
-      <AuthModal visible={isAuthModalVisible} onClose={() => setIsAuthModalVisible(false)} />
+      <AuthModal visible={isAuthModalVisible} onClose={() => setIsAuthModalVisible(false)} title={authModalOptions.title} description={authModalOptions.description} maybeLaterText={authModalOptions.maybeLaterText} />
     </AppContext.Provider>
   );
 }

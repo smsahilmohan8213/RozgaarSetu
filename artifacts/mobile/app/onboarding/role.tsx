@@ -21,8 +21,7 @@ export default function RoleSelectionScreen() {
     if (!selectedRole) return;
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await setGuestRole(selectedRole);
-    await completeOnboarding();
-    router.replace("/(tabs)");
+    router.push("/onboarding/language" as any);
   }
 
   const styles = getStyles(colors);

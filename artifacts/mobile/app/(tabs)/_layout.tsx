@@ -14,6 +14,7 @@ import {
 
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { useTranslation } from "@/hooks/useTranslation";
 
 type TabRouteName = "index" | "jobs" | "saved" | "profile" | "post-job" | "activity" | "nearby";
 
@@ -35,39 +36,39 @@ const ALL_ROUTES: TabRouteName[] = [
   "nearby",
 ];
 
-function getTabsForRole(user: ReturnType<typeof useApp>["user"]): TabConfig[] {
-  // Guest (not authenticated) gets the same tabs regardless of selected role
+function getTabsForRole(user: ReturnType<typeof useApp>["user"], t: (k: string) => string): TabConfig[] {
+
   if (!user.isAuthenticated) {
     return [
-      { name: "index", label: "Home", icon: "home-outline" },
-      { name: "jobs", label: "Jobs", icon: "briefcase-outline" },
-      { name: "profile", label: "Profile", icon: "person-outline" },
+      { name: "index", label: t("Home"), icon: "home-outline" },
+      { name: "jobs", label: t("Jobs"), icon: "briefcase-outline" },
+      { name: "profile", label: t("Profile"), icon: "person-outline" },
     ];
   }
 
   if (user.role === "employer") {
     return [
-      { name: "index", label: "Home", icon: "home-outline" },
-      { name: "jobs", label: "My Jobs", icon: "briefcase-outline" },
-      { name: "post-job", label: "Post Job", icon: "add-circle-outline", isPrimary: true },
-      { name: "profile", label: "Profile", icon: "person-outline" },
+      { name: "index", label: t("Home"), icon: "home-outline" },
+      { name: "jobs", label: t("My Jobs"), icon: "briefcase-outline" },
+      { name: "post-job", label: t("Post Job"), icon: "add-circle-outline", isPrimary: true },
+      { name: "profile", label: t("Profile"), icon: "person-outline" },
     ];
   }
 
   if (user.role === "seeker") {
     return [
-      { name: "index", label: "Home", icon: "home-outline" },
-      { name: "jobs", label: "Jobs", icon: "briefcase-outline" },
-      { name: "activity", label: "Activity", icon: "notifications-outline" },
-      { name: "profile", label: "Profile", icon: "person-outline" },
+      { name: "index", label: t("Home"), icon: "home-outline" },
+      { name: "jobs", label: t("Jobs"), icon: "briefcase-outline" },
+      { name: "activity", label: t("Activity"), icon: "notifications-outline" },
+      { name: "profile", label: t("Profile"), icon: "person-outline" },
     ];
   }
 
   // Fallback
   return [
-    { name: "index", label: "Home", icon: "home-outline" },
-    { name: "jobs", label: "Jobs", icon: "briefcase-outline" },
-    { name: "profile", label: "Profile", icon: "person-outline" },
+    { name: "index", label: t("Home"), icon: "home-outline" },
+    { name: "jobs", label: t("Jobs"), icon: "briefcase-outline" },
+    { name: "profile", label: t("Profile"), icon: "person-outline" },
   ];
 }
 
@@ -100,12 +101,16 @@ function NativeTabBar(props: any) {
       activeColor: string;
       inactiveColor: string;
       pillColor: string;
+      requireAuth: (action: () => void, options?: { title?: string; description?: string; maybeLaterText?: string }) => void;
+      isAuthenticated: boolean;
     };
   const isIOS = Platform.OS === "ios";
   
   // Filter state routes so we only render buttons for the active role's tabs
   const visibleRouteNames = new Set(tabs.map((tab) => tab.name));
   const visibleRoutes = state.routes.filter((route) => visibleRouteNames.has(route.name as TabRouteName));
+
+  const protectedRoutes = new Set(["post-job", "activity", "saved"]);
 
   return (
     <View pointerEvents="box-none" style={styles.overlay}>
@@ -143,6 +148,15 @@ function NativeTabBar(props: any) {
             const isFocused = state.index === routeIndex;
             const descriptor = descriptors[route.key];
             const onPress = () => {
+              if (protectedRoutes.has(route.name) && !props.isAuthenticated) {
+                props.requireAuth(() => {}, {
+                  title: "Sign in to continue",
+                  description: "Create an account to unlock all RozgaarSetu features.",
+                  maybeLaterText: "Maybe Later",
+                });
+                return;
+              }
+
               const event = navigation.emit({
                 type: "tabPress",
                 target: route.key,
@@ -229,9 +243,10 @@ function NativeTabBar(props: any) {
 }
 
 function TabLayout() {
-  const { user } = useApp();
+  const { user, requireAuth } = useApp();
   const colors = useColors();
-  const tabs = getTabsForRole(user);
+  const { t } = useTranslation();
+  const tabs = getTabsForRole(user, t);
 
   const activeColor = colors.primary ?? "#0A66C2";
   const inactiveColor = "#64748B";
@@ -239,15 +254,16 @@ function TabLayout() {
 
   // Predefine titles for standard screens
   const titles: Partial<Record<TabRouteName, string>> = {
-    index: "Home",
-    jobs: user.role === "employer" ? "My Jobs" : "Jobs",
-    activity: "Activity",
-    "post-job": "Post Job",
-    profile: "Profile",
+    index: t("Home"),
+    jobs: user.role === "employer" ? t("My Jobs") : t("Jobs"),
+    activity: t("Activity"),
+    "post-job": t("Post Job"),
+    profile: t("Profile"),
   };
 
   return (
     <Tabs
+      key={`${user.isAuthenticated}-${user.role}`}
       tabBar={(props) => (
         <NativeTabBar
           {...props}
@@ -255,6 +271,8 @@ function TabLayout() {
           activeColor={activeColor}
           inactiveColor={inactiveColor}
           pillColor={pillColor}
+          requireAuth={requireAuth}
+          isAuthenticated={user.isAuthenticated}
         />
       )}
       screenOptions={{

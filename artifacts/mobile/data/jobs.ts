@@ -10,10 +10,11 @@ export type JobCategory =
   | "Hospitality"
   | "Warehouse";
 
-export interface Job {
+export type Job = {
   id: string;
   title: string;
   company: string;
+  logo?: any;
   logoInitials: string;
   logoColor: string;
   category: JobCategory;
@@ -27,8 +28,8 @@ export interface Job {
   isTrusted: boolean;
   isUrgent: boolean;
   postedTime: string;
-  whatsappNumber: string;
   applicants: number;
+  whatsappNumber: string;
   jobType: "Full Time" | "Part Time" | "Freelance";
   isFreshersOk: boolean;
   isNegotiable: boolean;
@@ -36,7 +37,16 @@ export interface Job {
   requirements: string[];
   lat: number;
   lng: number;
-}
+};
+
+const COMPANY_LOGOS: Record<string, any> = {
+  "Zomato": require("../assets/images/company-logos/zomato.png"),
+  "Swiggy": require("../assets/images/company-logos/swiggy.png"),
+  "Blinkit": require("../assets/images/company-logos/blinkit.png"),
+  "Zepto": require("../assets/images/company-logos/zepto.png"),
+  "BigBasket": require("../assets/images/company-logos/bigbasket.png"),
+  "Urban Company": require("../assets/images/company-logos/uc.png"),
+};
 
 export const LOCALITIES = [
   "All Areas",
@@ -71,6 +81,7 @@ export const JOBS: Job[] = [
     company: "Zomato",
     logoInitials: "ZO",
     logoColor: "#E23744",
+    logo: require("../assets/images/company-logos/zomato.png"),
     category: "Delivery",
     salary: "₹18,000 - ₹25,000",
     salaryMin: 18000,
@@ -499,6 +510,7 @@ export const JOBS: Job[] = [
     company: "Swiggy",
     logoInitials: "SW",
     logoColor: "#FC8019",
+    logo: require("../assets/images/company-logos/swiggy.png"),
     category: "Delivery",
     salary: "₹20,000 - ₹40,000",
     salaryMin: 20000,
@@ -796,6 +808,7 @@ export const JOBS: Job[] = [
     company: "Blinkit (Grofers)",
     logoInitials: "BL",
     logoColor: "#FBBF24",
+    logo: require("../assets/images/company-logos/blinkit.png"),
     category: "Delivery",
     salary: "₹17,000 - ₹28,000",
     salaryMin: 17000,

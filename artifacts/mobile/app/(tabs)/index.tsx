@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import React, { ComponentProps, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
+  Image,
   Platform,
   RefreshControl,
   ScrollView,
@@ -20,15 +21,16 @@ import { SkeletonCard } from "@/components/SkeletonCard";
 import { useApp } from "@/context/AppContext";
 import { LOCALITIES, type Job } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
+import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/lib/supabaseClient";
 
 const TRENDING_COMPANIES = [
-  { name: "Zomato", color: "#E23744", logo: "Z" },
-  { name: "Blinkit", color: "#F8CB46", logo: "B" },
-  { name: "Swiggy", color: "#FC8019", logo: "S" },
-  { name: "Urban Company", color: "#000000", logo: "UC" },
-  { name: "BigBasket", color: "#84C225", logo: "bb" },
-  { name: "Zepto", color: "#3B0060", logo: "Z" },
+  { name: "Zomato", color: "#E23744", logoImage: require("../../assets/images/company-logos/zomato.png") },
+  { name: "Blinkit", color: "#F8CB46", logoImage: require("../../assets/images/company-logos/blinkit.png") },
+  { name: "Swiggy", color: "#FC8019", logoImage: require("../../assets/images/company-logos/swiggy.png") },
+  { name: "Urban Company", color: "#000000", logoImage: require("../../assets/images/company-logos/uc.png") },
+  { name: "BigBasket", color: "#84C225", logoImage: require("../../assets/images/company-logos/bigbasket.png") },
+  { name: "Zepto", color: "#3B0060", logoImage: require("../../assets/images/company-logos/zepto.png") },
 ];
 
 const GREETING_MAP: Record<string, string> = {
@@ -47,23 +49,20 @@ function getGreeting() {
 export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { user, selectedLocality, setSelectedLocality, postedJobs, applications, savedJobIds } = useApp();
+  const { user, selectedLocality, setSelectedLocality, postedJobs, applications, savedJobIds, requireAuth } = useApp();
   const [search, setSearch] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const isWeb = Platform.OS === "web";
   const [employerMetrics, setEmployerMetrics] = useState({ activeJobs: 0, totalApplicants: 0, jobsPosted: 0, upcomingInterviews: 0 });
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const { t } = useTranslation();
 
   const seekerAppsCount = useMemo(() => applications.filter(a => a.name === user.name || a.name === "Guest User" || a.phone === user.phone).length, [applications, user]);
   const seekerInterviewsCount = useMemo(() => applications.filter(a => (a.name === user.name || a.name === "Guest User" || a.phone === user.phone) && a.status === "interview").length, [applications, user]);
 
-  const requireAuth = (callback: () => void) => {
-    if (!user.isAuthenticated) {
-      setShowAuthModal(true);
-    } else {
-      callback();
-    }
+  const requireAuthAction = (action: () => void, options?: { title?: string; description?: string; maybeLaterText?: string }) => {
+    requireAuth(action, options);
   };
 
   useEffect(() => {
@@ -182,30 +181,30 @@ export default function HomeScreen() {
             <DashboardAction
               icon="add-circle"
               label="Post Job"
-              onPress={() => requireAuth(() => router.push("/post-job"))}
+              onPress={() => requireAuthAction(() => router.push("/post-job"), { title: "Sign in to Post Job", description: "Create an employer account to post jobs.", maybeLaterText: "Maybe Later" })}
               highlighted
             />
             <DashboardAction
               icon="briefcase"
               label="Manage Jobs"
-              onPress={() => requireAuth(() => router.push("/(tabs)/jobs"))}
+              onPress={() => requireAuthAction(() => router.push("/(tabs)/jobs"), { title: "Sign in to Manage Jobs", description: "Create an employer account to manage your jobs.", maybeLaterText: "Maybe Later" })}
             />
             <DashboardAction
               icon="people"
               label="View Applicants"
-              onPress={() => requireAuth(() => {
+              onPress={() => requireAuthAction(() => {
                 const firstJob = postedJobs[0];
                 if (firstJob) {
                   router.push(`/employer/applicants/${firstJob.id}`);
                 } else {
                   router.push("/(tabs)/jobs");
                 }
-              })}
+              }, { title: "Sign in to View Applicants", description: "Create an employer account to view applicants.", maybeLaterText: "Maybe Later" })}
             />
           </View>
         </LinearGradient>
 
-        <SectionHeader title="Live Listings" subtitle={`${postedJobs.length} active jobs`} />
+        <SectionHeader title={t("Live Listings")} subtitle={`${postedJobs.length} active jobs`} />
         {loading ? (
           <>
             <SkeletonCard />
@@ -217,7 +216,7 @@ export default function HomeScreen() {
             title="No jobs yet"
             text="Post your first job to start receiving applicants."
             actionLabel="Post Job"
-            onAction={() => requireAuth(() => router.push("/post-job"))}
+            onAction={() => requireAuthAction(() => router.push("/post-job"), { title: "Sign in to Post Job", description: "Create an employer account to post jobs.", maybeLaterText: "Maybe Later" })}
           />
         ) : (
           postedJobs.slice(0, 4).map((job) => (
@@ -229,7 +228,7 @@ export default function HomeScreen() {
           ))
         )}
 
-        <SectionHeader title="Top Performing Job" subtitle="Most applications received" />
+        <SectionHeader title={t("Top Performing Job")} subtitle={t("Most applications received")} />
         {postedJobs.length > 0 ? (
           <EmployerPreviewRow
             job={[...postedJobs].sort((a,b) => b.applicants - a.applicants)[0]}
@@ -239,7 +238,7 @@ export default function HomeScreen() {
           <EmptyInline title="No data yet" text="Your top performing job will appear here." />
         )}
 
-        <SectionHeader title="Recent Applicants" subtitle="Candidates who applied recently" />
+        <SectionHeader title={t("Recent Applicants")} subtitle={t("Candidates who applied recently")} />
         {applications.slice(0, 3).length > 0 ? applications.slice(0, 3).map(app => (
            <View key={app.id} style={styles.recentApplicantRow}>
              <View style={styles.raAvatar}>
@@ -260,7 +259,7 @@ export default function HomeScreen() {
           <EmptyInline title="No applicants yet" text="When job seekers apply, they'll appear here." />
         )}
 
-        <SectionHeader title="Upcoming Interviews" subtitle="Interviews scheduled" />
+        <SectionHeader title={t("Upcoming Interviews")} subtitle={t("Interviews scheduled")} />
         {applications.filter(a => a.status === "interview").slice(0, 3).length > 0 ? applications.filter(a => a.status === "interview").slice(0, 3).map(app => (
            <View key={app.id + "iv"} style={styles.interviewRow}>
              <View style={styles.ivDateBox}>
@@ -282,7 +281,7 @@ export default function HomeScreen() {
           <EmptyInline title="No interviews scheduled" text="Shortlist applicants to schedule interviews." />
         )}
 
-        <AuthModal visible={showAuthModal} onClose={() => setShowAuthModal(false)} />
+
       </ScrollView>
     );
   }
@@ -291,7 +290,7 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <SearchHeader
         greeting={getGreeting()}
-        name={user.isAuthenticated ? user.name : "there"}
+        name={user.isAuthenticated ? user.name : "Guest"}
         searchValue={search}
         onSearchChange={setSearch}
         onNotification={() => router.push("/notifications")}
@@ -308,29 +307,49 @@ export default function HomeScreen() {
         ListHeaderComponent={
           <View>
             <View style={styles.localityScroll}>
-              <LinearGradient
-                colors={["#1D4ED8", "#2563EB", "#3B82F6"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.seekerHero}
-              >
-                <Text style={styles.seekerHeroTitle}>Find jobs near you</Text>
-                <Text style={styles.seekerHeroSub}>Explore thousands of local opportunities tailored for you.</Text>
-                <TouchableOpacity style={styles.seekerHeroBtn} onPress={() => router.push("/(tabs)/jobs")}>
-                  <Text style={styles.seekerHeroBtnText}>Quick Apply</Text>
-                  <Ionicons name="arrow-forward" size={16} color="#2563EB" />
+              {!user.isAuthenticated && (
+                <TouchableOpacity
+                  style={styles.signInPromoCard}
+                  onPress={() => requireAuthAction(() => {}, { title: "Sign in to continue", description: "Create an account to unlock all RozgaarSetu features.", maybeLaterText: "Maybe Later" })}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.signInPromoIconWrap}>
+                    <Ionicons name="person-circle" size={46} color="#94A3B8" />
+                  </View>
+                  <View style={styles.signInPromoTextContainer}>
+                    <Text style={styles.signInPromoTitle}>{t("Sign in for Better Matches") || "Sign in for Better Matches"}</Text>
+                    <Text style={styles.signInPromoSub}>{t("Get personalized job alerts near you") || "Get personalized job alerts near you"}</Text>
+                  </View>
+                  <View style={styles.signInPromoBtn}>
+                    <Ionicons name="arrow-forward" size={18} color="#fff" />
+                  </View>
                 </TouchableOpacity>
-              </LinearGradient>
+              )}
+              {user.isAuthenticated && (
+                <LinearGradient
+                  colors={["#1D4ED8", "#2563EB", "#3B82F6"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.seekerHero}
+                >
+                  <Text style={styles.seekerHeroTitle}>{getGreeting()}, {user.name.split(" ")[0] || t("Guest")}{"\n"}{t("Find jobs near you")}</Text>
+                  <Text style={styles.seekerHeroSub}>{t("Explore thousands of local opportunities tailored for you.")}</Text>
+                  <TouchableOpacity style={styles.seekerHeroBtn} onPress={() => router.push("/(tabs)/jobs")}>
+                    <Text style={styles.seekerHeroBtnText}>{t("Quick Apply")}</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#2563EB" />
+                  </TouchableOpacity>
+                </LinearGradient>
+              )}
 
               {user.isAuthenticated && (
                 <View style={[styles.dashboardGrid, { marginTop: 16 }]}>
-                  <DashboardCard label="Applications" value={String(seekerAppsCount)} icon="document-text" onPress={() => router.push("/applications" as any)} />
-                  <DashboardCard label="Interviews" value={String(seekerInterviewsCount)} icon="calendar" onPress={() => router.push("/applications" as any)} />
-                  <DashboardCard label="Saved Jobs" value={String(savedJobIds.length)} icon="bookmark" onPress={() => router.push("/(tabs)/saved")} />
+                                     <DashboardCard label="Applications" value={String(seekerAppsCount)} icon="document-text" onPress={() => requireAuthAction(() => router.push("/applications" as any))} />
+                                     <DashboardCard label="Interviews" value={String(seekerInterviewsCount)} icon="calendar" onPress={() => requireAuthAction(() => router.push("/applications" as any))} />
+                                   <DashboardCard label="Saved Jobs" value={String(savedJobIds.length)} icon="bookmark" onPress={() => requireAuthAction(() => router.push("/(tabs)/saved"))} />
                 </View>
               )}
 
-              <SectionHeader title="Popular Localities" />
+              <SectionHeader title={t("Popular Localities")} />
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -360,14 +379,14 @@ export default function HomeScreen() {
               ))}
               </ScrollView>
 
-              {search.length === 0 && (
+              {user.isAuthenticated && search.length === 0 && (
                 <>
-                  <SectionHeader title="Trending Companies" subtitle="Top delivery & gig brands" />
+                  <SectionHeader title={t("Trending Companies")} subtitle={t("Top delivery & gig brands")} />
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.companyScroll}>
                     {TRENDING_COMPANIES.map((company) => (
                       <View key={company.name} style={styles.trendingCard}>
-                        <View style={[styles.trendingLogo, { backgroundColor: `${company.color}15` }]}>
-                          <Text style={[styles.trendingLogoText, { color: company.color }]}>{company.logo}</Text>
+                        <View style={[styles.trendingLogo, { backgroundColor: `${company.color}15`, padding: 8 }]}>
+                          <Image source={company.logoImage} style={{ width: "100%", height: "100%", borderRadius: 8 }} resizeMode="contain" />
                         </View>
                         <Text style={styles.trendingName} numberOfLines={1}>{company.name}</Text>
                         <TouchableOpacity style={styles.trendingApplyBtn} onPress={() => router.push("/(tabs)/jobs")}>
@@ -384,30 +403,34 @@ export default function HomeScreen() {
               <SectionHeader title={`Results for "${search}"`} subtitle={`${filteredJobs.length} matches`} />
             ) : (
               <>
-                <SectionHeader
-                  title="Nearby Jobs"
-                  subtitle={selectedLocality === "All Areas" ? "Near your area" : selectedLocality}
-                  onSeeAll={() => router.push("/(tabs)/nearby")}
-                />
-                {loading ? (
-                  <HorizontalSkeleton />
-                ) : nearbyJobs.length > 0 ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
-                    {nearbyJobs.slice(0, 6).map((job) => (
-                      <View key={job.id} style={styles.horizontalCard}>
-                        <JobCard job={job} compact />
-                      </View>
-                    ))}
-                  </ScrollView>
-                ) : (
-                  <EmptyInline
-                    title="No nearby jobs"
-                    text="Try another locality or refresh for more listings."
-                  />
+                {user.isAuthenticated && (
+                  <>
+                    <SectionHeader
+                      title={t("Nearby Jobs")}
+                      subtitle={selectedLocality === "All Areas" ? t("Near your area") : selectedLocality}
+                      onSeeAll={() => router.push("/(tabs)/nearby")}
+                    />
+                    {loading ? (
+                      <HorizontalSkeleton />
+                    ) : nearbyJobs.length > 0 ? (
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                        {nearbyJobs.slice(0, 6).map((job) => (
+                          <View key={job.id} style={styles.horizontalCard}>
+                            <JobCard job={job} compact />
+                          </View>
+                        ))}
+                      </ScrollView>
+                    ) : (
+                      <EmptyInline
+                        title="No nearby jobs"
+                        text="Try another locality or refresh for more listings."
+                      />
+                    )}
+                  </>
                 )}
 
                 <SectionHeader
-                  title="Urgent Hiring"
+                  title={t("Urgent Hiring")}
                   subtitle={`${urgentJobs.length} active openings`}
                   onSeeAll={() => router.push("/(tabs)/jobs")}
                 />
@@ -426,8 +449,8 @@ export default function HomeScreen() {
                 )}
 
                 <SectionHeader
-                  title="Featured Jobs"
-                  subtitle="Verified and trusted employers"
+                  title={t("Featured Jobs")}
+                  subtitle={t("Verified and trusted employers")}
                   onSeeAll={() => router.push("/(tabs)/jobs")}
                 />
                 {loading ? (
@@ -441,42 +464,65 @@ export default function HomeScreen() {
                   <EmptyInline title="No featured jobs" text="Featured listings will appear here soon." />
                 )}
 
-                <SectionHeader
-                  title="Recommended Jobs"
-                  subtitle="Picked for better matches"
-                  onSeeAll={() => router.push("/(tabs)/jobs")}
-                />
-                {loading ? (
+                {!user.isAuthenticated && (
                   <>
-                    <SkeletonCard />
-                    <SkeletonCard />
+                    <SectionHeader title={t("Trending Companies")} subtitle={t("Top delivery & gig brands")} />
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.companyScroll}>
+                      {TRENDING_COMPANIES.map((company) => (
+                        <View key={company.name} style={styles.trendingCard}>
+                          <View style={[styles.trendingLogo, { backgroundColor: `${company.color}15`, padding: 8 }]}>
+                            <Image source={company.logoImage} style={{ width: "100%", height: "100%", borderRadius: 8 }} resizeMode="contain" />
+                          </View>
+                          <Text style={styles.trendingName} numberOfLines={1}>{company.name}</Text>
+                          <TouchableOpacity style={styles.trendingApplyBtn} onPress={() => router.push("/(tabs)/jobs")}>
+                            <Text style={styles.trendingApplyText}>View Jobs</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </ScrollView>
                   </>
-                ) : recommendedJobs.length > 0 ? (
-                  recommendedJobs.slice(0, 4).map((job) => <JobCard key={job.id} job={job} />)
-                ) : (
-                  <EmptyInline title="No recommendations yet" text="Check back after saving or applying to jobs." />
                 )}
 
-                <SectionHeader
-                  title="Top Companies"
-                  subtitle="Companies with the most openings"
-                />
-                {loading ? (
-                  <HorizontalSkeleton />
-                ) : topCompanies.length > 0 ? (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.companyScroll}>
-                    {topCompanies.map((company) => (
-                      <View key={company.name} style={styles.companyCard}>
-                        <Text style={styles.companyName} numberOfLines={1}>
-                          {company.name}
-                        </Text>
-                        <Text style={styles.companyMeta}>{company.count} openings</Text>
-                        <Text style={styles.companyHint}>{company.urgent} urgent</Text>
-                      </View>
-                    ))}
-                  </ScrollView>
-                ) : (
-                  <EmptyInline title="No companies yet" text="Company highlights will appear here." />
+                {user.isAuthenticated && (
+                  <>
+                    <SectionHeader
+                      title={t("Recommended Jobs")}
+                      subtitle={t("Picked for better matches")}
+                      onSeeAll={() => router.push("/(tabs)/jobs")}
+                    />
+                    {loading ? (
+                      <>
+                        <SkeletonCard />
+                        <SkeletonCard />
+                      </>
+                    ) : recommendedJobs.length > 0 ? (
+                      recommendedJobs.slice(0, 4).map((job) => <JobCard key={job.id} job={job} />)
+                    ) : (
+                      <EmptyInline title="No recommendations yet" text="Check back after saving or applying to jobs." />
+                    )}
+
+                    <SectionHeader
+                      title={t("Top Companies")}
+                      subtitle={t("Companies with the most openings")}
+                    />
+                    {loading ? (
+                      <HorizontalSkeleton />
+                    ) : topCompanies.length > 0 ? (
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.companyScroll}>
+                        {topCompanies.map((company) => (
+                          <View key={company.name} style={styles.companyCard}>
+                            <Text style={styles.companyName} numberOfLines={1}>
+                              {company.name}
+                            </Text>
+                            <Text style={styles.companyMeta}>{company.count} openings</Text>
+                            <Text style={styles.companyHint}>{company.urgent} urgent</Text>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    ) : (
+                      <EmptyInline title="No companies yet" text="Company highlights will appear here." />
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -1257,6 +1303,49 @@ function getStyles(colors: ReturnType<typeof useColors>) {
       fontFamily: "Inter_400Regular",
       color: colors.mutedForeground,
       marginTop: 2,
+    },
+    signInPromoCard: {
+      backgroundColor: "#fff",
+      borderRadius: 16,
+      padding: 12,
+      marginHorizontal: 16,
+      marginTop: 12,
+      marginBottom: 16,
+      flexDirection: "row",
+      alignItems: "center",
+      shadowColor: "#2563EB",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      elevation: 4,
+      borderWidth: 1,
+      borderColor: "#E0E7FF",
+    },
+    signInPromoIconWrap: {
+      marginRight: 12,
+    },
+    signInPromoTextContainer: {
+      flex: 1,
+      marginRight: 12,
+    },
+    signInPromoTitle: {
+      fontSize: 15,
+      fontFamily: "Inter_700Bold",
+      color: "#0F172A",
+      marginBottom: 2,
+    },
+    signInPromoSub: {
+      fontSize: 12,
+      fontFamily: "Inter_400Regular",
+      color: "#64748B",
+    },
+    signInPromoBtn: {
+      backgroundColor: "#2563EB",
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: "center",
+      justifyContent: "center",
     },
   });
 }

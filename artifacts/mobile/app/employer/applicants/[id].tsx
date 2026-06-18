@@ -12,7 +12,7 @@ export default function ApplicantsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
-  const { postedJobs, applications, updateMockApplicationStatus, scheduleInterview } = useApp();
+  const { postedJobs, applications, updateMockApplicationStatus, scheduleInterview, requireAuth } = useApp();
 
   const job = postedJobs.find(j => j.id === id);
 
@@ -48,14 +48,18 @@ export default function ApplicantsScreen() {
   const timeSlots = ["10:00 AM", "11:30 AM", "1:00 PM", "2:30 PM", "4:00 PM", "5:30 PM"];
 
   function handleStatusChange(appId: string, newStatus: ApplicantStatus) {
-    updateMockApplicationStatus(appId, newStatus);
+    requireAuth(() => {
+      updateMockApplicationStatus(appId, newStatus);
+    }, { title: "Sign in to Change Status", description: "Create an employer account to manage applicants.", maybeLaterText: "Maybe Later" });
   }
 
   function openScheduleModal(appId: string) {
-    setSelectedAppId(appId);
-    setSelectedDate(upcomingDates[0].toISOString());
-    setSelectedTime(timeSlots[0]);
-    setIsModalVisible(true);
+    requireAuth(() => {
+      setSelectedAppId(appId);
+      setSelectedDate(upcomingDates[0].toISOString());
+      setSelectedTime(timeSlots[0]);
+      setIsModalVisible(true);
+    }, { title: "Sign in to Schedule", description: "Create an employer account to schedule interviews.", maybeLaterText: "Maybe Later" });
   }
 
   function confirmSchedule() {

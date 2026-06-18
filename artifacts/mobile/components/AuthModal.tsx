@@ -7,9 +7,12 @@ import { useRouter } from "expo-router";
 interface AuthModalProps {
   visible: boolean;
   onClose: () => void;
+  title?: string;
+  description?: string;
+  maybeLaterText?: string;
 }
 
-export function AuthModal({ visible, onClose }: AuthModalProps) {
+export function AuthModal({ visible, onClose, title = "Sign in to continue", description = "Create an account to unlock all RozgaarSetu features.", maybeLaterText = "Maybe Later" }: AuthModalProps) {
   const colors = useColors();
   const router = useRouter();
 
@@ -27,9 +30,9 @@ export function AuthModal({ visible, onClose }: AuthModalProps) {
             <Ionicons name="lock-closed" size={32} color="#2563EB" />
           </View>
 
-          <Text style={[styles.title, { color: colors.foreground }]}>Sign in required</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
           <Text style={[styles.desc, { color: colors.mutedForeground }]}>
-            Create an account to continue.
+            {description}
           </Text>
 
           <TouchableOpacity
@@ -55,13 +58,10 @@ export function AuthModal({ visible, onClose }: AuthModalProps) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.signInBtn, { backgroundColor: colors.primary }]}
-            onPress={() => {
-              onClose();
-              router.push("/auth");
-            }}
+            style={[styles.signInBtn, { backgroundColor: colors.muted }]}
+            onPress={onClose}
           >
-            <Text style={styles.signInBtnText}>Sign In</Text>
+            <Text style={[styles.signInBtnText, { color: colors.foreground }]}>{maybeLaterText}</Text>
           </TouchableOpacity>
         </View>
       </View>

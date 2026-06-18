@@ -70,7 +70,7 @@ export default function AuthScreen() {
     setLoading(true);
     try {
       await login(phone, name, role);
-      router.replace("/(tabs)");
+      router.replace("/(tabs)" as any);
     } catch (error: any) {
       const message =
         error?.message ??

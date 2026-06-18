@@ -19,6 +19,7 @@ import { JobCard } from "@/components/JobCard";
 import { useApp } from "@/context/AppContext";
 import { CATEGORIES, type JobCategory } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
+import { useTranslation } from "@/hooks/useTranslation";
 
 type SortOption = "recent" | "salary" | "distance";
 
@@ -38,7 +39,8 @@ export default function JobsScreen() {
   const router = useRouter();
   const isWeb = Platform.OS === "web";
 
-  const { postedJobs, user, setEditingJobId, deletePostedJob, setEmployerJobStatus, employerJobStatuses } = useApp();
+  const { postedJobs, user, setEditingJobId, deletePostedJob, setEmployerJobStatus, employerJobStatuses, requireAuth } = useApp();
+  const { t } = useTranslation();
 
   const [search, setSearch] = useState("");
   const [quickFilter, setQuickFilter] = useState("All");
@@ -117,14 +119,18 @@ export default function JobsScreen() {
   const styles = getStyles(colors);
 
   function handleDeleteJob(jobId: string, title: string) {
-    Alert.alert("Delete Job", `Remove "${title}" from listings?`, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => deletePostedJob(jobId) },
-    ]);
+    requireAuth(() => {
+      Alert.alert("Delete Job", `Remove "${title}" from listings?`, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: () => deletePostedJob(jobId) },
+      ]);
+    }, { title: "Sign in to Delete", description: "Create an employer account to delete jobs.", maybeLaterText: "Maybe Later" });
   }
 
   function handleStatusToggle(jobId: string, currentStatus: "active" | "paused" | "closed", targetStatus: "active" | "paused" | "closed") {
-    setEmployerJobStatus(jobId, targetStatus);
+    requireAuth(() => {
+      setEmployerJobStatus(jobId, targetStatus);
+    }, { title: "Sign in to Change Status", description: "Create an employer account to pause, resume or close jobs.", maybeLaterText: "Maybe Later" });
   }
 
   const [employerTab, setEmployerTab] = useState<"All" | "Active" | "Paused" | "Closed">("All");
@@ -138,8 +144,10 @@ export default function JobsScreen() {
   }, [postedJobs, employerTab, employerJobStatuses]);
 
   function handleEditJob(jobId: string) {
-    setEditingJobId(jobId);
-    router.push("/post-job");
+    requireAuth(() => {
+      setEditingJobId(jobId);
+      router.push("/post-job");
+    }, { title: "Sign in to Edit Job", description: "Create an employer account to edit jobs.", maybeLaterText: "Maybe Later" });
   }
 
   function handleApplicants(jobId: string) {
@@ -150,8 +158,8 @@ export default function JobsScreen() {
     return (
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: isWeb ? 67 : insets.top + 8 }]}>
-          <Text style={styles.title}>My Jobs</Text>
-          <Text style={styles.subtitle}>Manage your listings and applicants</Text>
+          <Text style={styles.title}>{t("My Jobs") || "My Jobs"}</Text>
+          <Text style={styles.subtitle}>{t("Manage your listings and applicants") || "Manage your listings and applicants"}</Text>
         </View>
 
         <View style={styles.empTabs}>
@@ -176,7 +184,7 @@ export default function JobsScreen() {
               title="No Jobs Posted"
               text={employerTab === "All" ? "Create your first listing and start receiving applicants." : `You have no ${employerTab.toLowerCase()} jobs.`}
               actionLabel="Post Job"
-              onAction={() => router.push("/post-job")}
+              onAction={() => requireAuth(() => router.push("/post-job"), { title: "Sign in to Post Job", description: "Create an employer account to post jobs.", maybeLaterText: "Maybe Later" })}
               colors={colors}
             />
           }
@@ -198,12 +206,12 @@ export default function JobsScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: isWeb ? 67 : insets.top + 8 }]}>
-        <Text style={styles.title}>Find Jobs</Text>
+        <Text style={styles.title}>{t("Find Jobs") || "Find Jobs"}</Text>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={17} color={colors.mutedForeground} />
           <TextInput
             style={[styles.searchInput, { color: colors.foreground }]}
-            placeholder="Job title, company..."
+            placeholder={t("Job title, company...") || "Job title, company..."}
             placeholderTextColor={colors.mutedForeground}
             value={search}
             onChangeText={setSearch}
@@ -246,7 +254,7 @@ export default function JobsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.list, { paddingBottom: isWeb ? 100 : 110 }]}
         showsVerticalScrollIndicator={false}
-        ListHeaderComponent={<Text style={styles.count}>{filteredSeekerJobs.length} jobs found</Text>}
+        ListHeaderComponent={<Text style={styles.count}>{filteredSeekerJobs.length} {t("jobs found") || "jobs found"}</Text>}
         ListEmptyComponent={
             <EmptyJobsState
             title={search ? "No search results" : "No jobs found"}
@@ -270,13 +278,13 @@ export default function JobsScreen() {
       <Modal visible={showFilters} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filters & Sorting</Text>
+            <Text style={styles.modalTitle}>{t("Filters & Sorting") || "Filters & Sorting"}</Text>
             <TouchableOpacity onPress={() => setShowFilters(false)} style={styles.modalClose}>
               <Ionicons name="close" size={24} color={colors.foreground} />
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-            <Text style={styles.filterSectionTitle}>Sort by</Text>
+            <Text style={styles.filterSectionTitle}>{t("Sort by") || "Sort by"}</Text>
             <View style={styles.filterOptionsGrid}>
               {(["recent", "salary", "distance"] as SortOption[]).map((opt) => (
                 <TouchableOpacity
@@ -363,10 +371,10 @@ export default function JobsScreen() {
                 setDateFilter("Any time");
               }}
             >
-              <Text style={styles.modalClearBtnText}>Clear All</Text>
+              <Text style={styles.modalClearBtnText}>{t("Clear All") || "Clear All"}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.modalApplyBtn} onPress={() => setShowFilters(false)}>
-              <Text style={styles.modalApplyBtnText}>Show Results</Text>
+              <Text style={styles.modalApplyBtnText}>{t("Show Results") || "Show Results"}</Text>
             </TouchableOpacity>
           </View>
         </View>

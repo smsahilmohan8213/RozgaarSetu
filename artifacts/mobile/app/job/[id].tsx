@@ -47,7 +47,7 @@ export default function JobDetailScreen() {
     requireAuth(async () => {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       toggleSaveJob(job!.id);
-    });
+    }, { title: "Sign in to Save Job", description: "Create an account to save jobs for later.", maybeLaterText: "Maybe Later" });
   }
 
   async function onWhatsApp() {
@@ -71,7 +71,7 @@ export default function JobDetailScreen() {
   function onApply() {
     requireAuth(() => {
       router.push(`/apply/${job!.id}`);
-    });
+    }, { title: "Sign in to Apply", description: "Create an account to apply for jobs.", maybeLaterText: "Maybe Later" });
   }
 
   return (
