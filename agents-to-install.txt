@@ -1,0 +1,9 @@
+frontend-developer
+mobile-app-builder
+product-manager
+ui-designer
+ux-architect
+senior-developer
+reality-checker
+test-results-analyzer
+sprint-prioritizer

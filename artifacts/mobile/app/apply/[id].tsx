@@ -23,7 +23,7 @@ export default function ApplyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { applyToJob, user, postedJobs } = useApp();
+  const { applyToJob, user, postedJobs, requireAuth } = useApp();
   const isWeb = Platform.OS === "web";
 
   const [step, setStep] = useState<ApplyStep>("confirm");
@@ -43,19 +43,28 @@ export default function ApplyScreen() {
     );
   }
 
-  async function handleApply() {
-    setStep("sending");
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await new Promise((r) => setTimeout(r, 1800));
-    await applyToJob(job!.id);
-    setStep("success");
+  function handleApply() {
+    requireAuth(async () => {
+      setStep("sending");
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await new Promise((r) => setTimeout(r, 1800));
+      try {
+        await applyToJob(job!.id);
+        setStep("success");
+      } catch (e) {
+        setStep("confirm");
+        // Error is handled by applyToJob (Alert)
+      }
+    });
   }
 
   function handleWhatsApp() {
-    const msg = encodeURIComponent(
-      `Hi, I am ${user.name || "a job seeker"} and I want to apply for the ${job!.title} position at ${job!.company}. I found this on RozgaarSetu. Please let me know the next steps.`
-    );
-    Linking.openURL(`https://wa.me/91${job!.whatsappNumber}?text=${msg}`);
+    requireAuth(() => {
+      const msg = encodeURIComponent(
+        `Hi, I am ${user.name || "a job seeker"} and I want to apply for the ${job!.title} position at ${job!.company}. I found this on RozgaarSetu. Please let me know the next steps.`
+      );
+      Linking.openURL(`https://wa.me/91${job!.whatsappNumber}?text=${msg}`);
+    });
   }
 
   const completionPct = user.profileScore;

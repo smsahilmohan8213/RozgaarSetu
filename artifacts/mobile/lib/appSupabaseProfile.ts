@@ -2,6 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { supabase } from "@/lib/supabaseClient";
 import type { UserProfile, UserRole } from "@/context/AppContext";
+import { Locale } from "@/context/AppContext";
+
 
 const DEFAULT_USER: UserProfile = {
   name: "",
@@ -12,8 +14,10 @@ const DEFAULT_USER: UserProfile = {
   skills: [],
   experience: "Fresher",
   education: "B.A.",
-  language: "Hindi / English",
+  locale: Locale.hi,
   bio: "",
+
+
   resumeUploaded: false,
   resumeName: "",
   resumeUri: "",
@@ -74,7 +78,6 @@ export async function loadSupabaseProfileFromSession() {
     if (profileError || !profileRow) {
       // If profile doesn't exist yet, do nothing here.
       return;
-    }
     }
 
     const role = (profileRow.role as UserRole) ?? null;

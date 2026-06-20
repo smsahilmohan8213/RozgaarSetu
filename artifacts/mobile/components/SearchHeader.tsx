@@ -39,8 +39,10 @@ export function SearchHeader({
   const { t } = useTranslation();
   const isWeb = Platform.OS === "web";
   
-  const currentLang = user?.language || "English";
+  const locale = user?.locale;
+  const currentLang = locale === "en" ? "English" : locale === "hinglish" ? "Hinglish" : locale === "hi" ? "Hindi" : "English";
   const displayLang = currentLang === "English" ? "Eng" : currentLang === "Hinglish" ? "Hinglish" : "हिन्दी";
+
 
   const [modalVisible, setModalVisible] = useState(false);
   const [pendingLang, setPendingLang] = useState<string>(currentLang);
@@ -176,9 +178,9 @@ const styles = StyleSheet.create({
   },
   topRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    marginBottom: 6,
+    marginBottom: 8,
   },
   greeting: {
     fontSize: 13,
@@ -187,10 +189,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
   name: {
-    fontSize: 24,
+    fontSize: 26,
     color: "#FFFFFF",
     fontFamily: "Inter_700Bold",
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
+    marginTop: 2,
   },
   notifBtn: {
     width: 42,
@@ -221,16 +224,18 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderRadius: 18,
+    gap: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 20,
     backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.04)",
     shadowColor: "#1E40AF",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 8,
   },
   searchInput: {
     flex: 1,

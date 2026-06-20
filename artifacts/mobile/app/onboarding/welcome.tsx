@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Image,
   Platform,
-  ScrollView,
   Modal,
   SafeAreaView,
   Pressable,
@@ -16,6 +15,8 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import Animated, { FadeInDown, ZoomIn } from "react-native-reanimated";
 
 import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
@@ -27,9 +28,9 @@ export default function WelcomeScreen() {
   const router = useRouter();
   const isWeb = Platform.OS === "web";
   
-  const { setLanguage, setGuestRole } = useApp();
+  const { setLanguage, setGuestRole, user } = useApp();
   const { t } = useTranslation();
-  
+
   const [modalVisible, setModalVisible] = useState(false);
 
   const handleGuest = async () => {
@@ -38,12 +39,7 @@ export default function WelcomeScreen() {
     router.replace("/(tabs)");
   };
 
-  const handleGoogle = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push("/auth");
-  };
-
-  const handlePhone = async () => {
+  const handleAuth = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push("/auth");
   };
@@ -55,107 +51,90 @@ export default function WelcomeScreen() {
 
   const styles = getStyles(colors, insets, isWeb);
   
-  const { user } = useApp();
-  const currentLang = user?.language || "English";
+  const currentLang =
+    user?.locale === "en"
+      ? "English"
+      : user?.locale === "hinglish"
+        ? "Hinglish"
+        : user?.locale === "hi"
+          ? "Hindi"
+          : "English";
   const displayLang = currentLang === "English" ? "Eng" : currentLang === "Hinglish" ? "Hinglish" : "हिन्दी";
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={[colors.gradientStart || "#1E40AF", colors.gradientEnd || "#3B82F6"]}
+        colors={["#0F172A", "#1E3A8A", "#3B82F6"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={styles.heroBackground}
       >
         <SafeAreaView style={styles.safeArea}>
           <View style={styles.topBar}>
-            <Image
-              source={require("@/assets/images/icon.png")}
-              style={styles.smallLogo}
-              resizeMode="contain"
-            />
+            <Animated.View entering={ZoomIn.duration(600)}>
+              <BlurView intensity={20} tint="light" style={styles.smallLogoWrap}>
+                <Image
+                  source={require("@/assets/images/icon.png")}
+                  style={styles.smallLogo}
+                  resizeMode="contain"
+                />
+              </BlurView>
+            </Animated.View>
             
-            <TouchableOpacity
-              style={styles.langBtn}
-              onPress={() => setModalVisible(true)}
-              activeOpacity={0.75}
-            >
-              <Ionicons name="language" size={16} color="#fff" />
-              <Text style={styles.langText}>{displayLang}</Text>
-            </TouchableOpacity>
+            <Animated.View entering={FadeInDown.duration(600).delay(100)}>
+              <TouchableOpacity onPress={() => setModalVisible(true)} activeOpacity={0.75}>
+                <BlurView intensity={20} tint="light" style={styles.langBtn}>
+                  <Ionicons name="language" size={16} color="#fff" />
+                  <Text style={styles.langText}>{displayLang}</Text>
+                  <Ionicons name="chevron-down" size={14} color="#fff" style={{ marginLeft: 2 }} />
+                </BlurView>
+              </TouchableOpacity>
+            </Animated.View>
           </View>
           
           <View style={styles.heroContent}>
-            <Text style={styles.heroTitle}>{t("Find Jobs Near Your Home")}</Text>
-            <Text style={styles.heroSub}>{t("Discover verified local jobs near Rohini, Jahangirpuri, Pitampura, Azadpur, Model Town and nearby areas.")}</Text>
+            <Animated.Text entering={FadeInDown.duration(600).delay(200).springify()} style={styles.heroTitle}>
+              {t("Find Jobs Near Your Home")}
+            </Animated.Text>
+            <Animated.Text entering={FadeInDown.duration(600).delay(300).springify()} style={styles.heroSub}>
+              {t("Discover verified local jobs near Rohini, Jahangirpuri, Pitampura, Azadpur, Model Town and nearby areas.")}
+            </Animated.Text>
             
             <View style={styles.cardsRow}>
-              <View style={styles.jobCard}>
-                <Ionicons name="bicycle" size={24} color="#2563EB" />
-                <Text style={styles.jobCardText}>{t("Delivery Executive")}</Text>
-              </View>
-              <View style={styles.jobCard}>
-                <Ionicons name="business" size={24} color="#059669" />
-                <Text style={styles.jobCardText}>{t("Office Executive")}</Text>
-              </View>
-              <View style={styles.jobCard}>
-                <Ionicons name="cart" size={24} color="#D97706" />
-                <Text style={styles.jobCardText}>{t("Retail Staff")}</Text>
-              </View>
+              <JobCardPill icon="bicycle" label={t("Delivery")} color="#60A5FA" delay={400} />
+              <JobCardPill icon="business" label={t("Office")} color="#34D399" delay={500} />
+              <JobCardPill icon="cart" label={t("Retail")} color="#FBBF24" delay={600} />
             </View>
             <View style={styles.cardsRow2}>
-              <View style={styles.jobCard}>
-                <Ionicons name="construct" size={24} color="#7C3AED" />
-                <Text style={styles.jobCardText}>{t("Technician")}</Text>
-              </View>
-              <View style={styles.jobCard}>
-                <Ionicons name="people" size={24} color="#DC2626" />
-                <Text style={styles.jobCardText}>{t("Recruiter Posting Jobs")}</Text>
-              </View>
+              <JobCardPill icon="construct" label={t("Technician")} color="#A78BFA" delay={700} />
+              <JobCardPill icon="people" label={t("HR/Admin")} color="#F87171" delay={800} />
             </View>
           </View>
         </SafeAreaView>
       </LinearGradient>
 
-      <View style={styles.bottomSheet}>
-        <View style={styles.benefitsContainer}>
-          <View style={styles.benefitItem}>
-            <Ionicons name="checkmark-circle" size={18} color="#059669" />
-            <Text style={styles.benefitText}>{t("Nearby Jobs")}</Text>
-          </View>
-          <View style={styles.benefitItem}>
-            <Ionicons name="checkmark-circle" size={18} color="#059669" />
-            <Text style={styles.benefitText}>{t("Verified Employers")}</Text>
-          </View>
-          <View style={styles.benefitItem}>
-            <Ionicons name="checkmark-circle" size={18} color="#059669" />
-            <Text style={styles.benefitText}>{t("One Tap Apply")}</Text>
-          </View>
-          <View style={styles.benefitItem}>
-            <Ionicons name="checkmark-circle" size={18} color="#059669" />
-            <Text style={styles.benefitText}>{t("Freshers Welcome")}</Text>
-          </View>
-          <View style={styles.benefitItem}>
-            <Ionicons name="checkmark-circle" size={18} color="#059669" />
-            <Text style={styles.benefitText}>{t("Local Hiring")}</Text>
-          </View>
-        </View>
+      <Animated.View entering={FadeInDown.duration(800).delay(500).springify()} style={styles.bottomSheet}>
+        <View style={styles.handleBarWrap}><View style={styles.handleBar} /></View>
+        
+        <Text style={styles.sheetTitle}>{t("Get Started")}</Text>
 
         <View style={styles.authContainer}>
           <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={handleAuth}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="call" size={20} color="#fff" />
+            <Text style={styles.primaryBtnText}>{t("Continue with Phone")}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={styles.googleBtn}
-            onPress={handleGoogle}
+            onPress={handleAuth}
             activeOpacity={0.8}
           >
             <Ionicons name="logo-google" size={20} color="#EA4335" />
             <Text style={styles.googleBtnText}>{t("Continue with Google")}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.phoneBtn}
-            onPress={handlePhone}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="call" size={20} color={colors.primary} />
-            <Text style={styles.phoneBtnText}>{t("Continue with Phone Number")}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -166,25 +145,25 @@ export default function WelcomeScreen() {
             <Text style={styles.guestBtnText}>{t("Continue as Guest")}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+        
+        <View style={styles.benefitsWrap}>
+          <BenefitItem text={t("Nearby Jobs")} />
+          <BenefitItem text={t("Verified")} />
+          <BenefitItem text={t("Free")} />
+        </View>
+      </Animated.View>
 
       <Modal
         visible={modalVisible}
-        animationType="slide"
+        animationType="fade"
         transparent
         onRequestClose={() => setModalVisible(false)}
       >
         <SafeAreaView style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setModalVisible(false)} />
+          <Animated.View entering={FadeInDown.duration(300).springify()} style={styles.modalSheet}>
             <View style={styles.modalHeaderRow}>
               <View style={styles.modalHandle} />
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setModalVisible(false)}
-                activeOpacity={0.75}
-              >
-                <Ionicons name="close" size={20} color="#475569" />
-              </TouchableOpacity>
             </View>
             <Text style={styles.modalTitle}>{t("Choose Language")}</Text>
 
@@ -196,7 +175,6 @@ export default function WelcomeScreen() {
                   key={item}
                   style={[styles.optionCard, selected && styles.optionCardSelected]}
                   onPress={() => changeLanguage(item)}
-                  android_ripple={{ color: "rgba(30,64,175,0.08)" }}
                 >
                   <Text style={[styles.optionCardText, selected && styles.optionCardTextSelected]}>
                     {displayLabel}
@@ -207,12 +185,71 @@ export default function WelcomeScreen() {
                 </Pressable>
               );
             })}
-          </View>
+          </Animated.View>
         </SafeAreaView>
       </Modal>
     </View>
   );
 }
+
+function JobCardPill({ icon, label, color, delay }: { icon: any; label: string; color: string; delay: number }) {
+  return (
+    <Animated.View entering={ZoomIn.duration(500).delay(delay).springify()}>
+      <BlurView intensity={30} tint="light" style={pillStyles.card}>
+        <View style={[pillStyles.iconWrap, { backgroundColor: color + "20" }]}>
+          <Ionicons name={icon} size={18} color={color} />
+        </View>
+        <Text style={pillStyles.text}>{label}</Text>
+      </BlurView>
+    </Animated.View>
+  );
+}
+
+function BenefitItem({ text }: { text: string }) {
+  return (
+    <View style={pillStyles.benefit}>
+      <Ionicons name="checkmark-circle" size={14} color="#059669" />
+      <Text style={pillStyles.benefitText}>{text}</Text>
+    </View>
+  );
+}
+
+const pillStyles = StyleSheet.create({
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 100,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  iconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  text: {
+    fontSize: 13,
+    fontFamily: "Inter_600SemiBold",
+    color: "#fff",
+    marginRight: 4,
+  },
+  benefit: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  benefitText: {
+    fontSize: 12,
+    fontFamily: "Inter_500Medium",
+    color: "#475569",
+  }
+});
 
 function getStyles(colors: ReturnType<typeof useColors>, insets: any, isWeb: boolean) {
   return StyleSheet.create({
@@ -231,25 +268,30 @@ function getStyles(colors: ReturnType<typeof useColors>, insets: any, isWeb: boo
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      paddingHorizontal: 20,
+      paddingHorizontal: 24,
       paddingTop: isWeb ? 20 : insets.top + 10,
     },
+    smallLogoWrap: {
+      borderRadius: 14,
+      overflow: "hidden",
+      padding: 8,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.2)",
+    },
     smallLogo: {
-      width: 40,
-      height: 40,
-      borderRadius: 12,
-      backgroundColor: "rgba(255,255,255,0.2)",
+      width: 28,
+      height: 28,
     },
     langBtn: {
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
-      backgroundColor: "rgba(255,255,255,0.2)",
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
       borderRadius: 20,
+      overflow: "hidden",
       borderWidth: 1,
-      borderColor: "rgba(255,255,255,0.3)",
+      borderColor: "rgba(255,255,255,0.2)",
     },
     langText: {
       color: "#fff",
@@ -258,89 +300,88 @@ function getStyles(colors: ReturnType<typeof useColors>, insets: any, isWeb: boo
     },
     heroContent: {
       flex: 1,
-      paddingHorizontal: 20,
+      paddingHorizontal: 24,
       justifyContent: "center",
-      paddingBottom: 40,
+      paddingBottom: 60,
     },
     heroTitle: {
-      fontSize: 34,
+      fontSize: 40,
       fontFamily: "Inter_700Bold",
       color: "#fff",
-      lineHeight: 42,
-      marginBottom: 12,
+      lineHeight: 48,
+      marginBottom: 16,
+      letterSpacing: -1,
     },
     heroSub: {
-      fontSize: 15,
+      fontSize: 16,
       fontFamily: "Inter_400Regular",
-      color: "rgba(255,255,255,0.9)",
-      lineHeight: 22,
-      marginBottom: 30,
+      color: "rgba(255,255,255,0.85)",
+      lineHeight: 24,
+      marginBottom: 32,
     },
     cardsRow: {
       flexDirection: "row",
-      gap: 12,
-      marginBottom: 12,
+      flexWrap: "wrap",
+      gap: 10,
+      marginBottom: 10,
     },
     cardsRow2: {
       flexDirection: "row",
-      gap: 12,
+      flexWrap: "wrap",
+      gap: 10,
     },
-    jobCard: {
-      flex: 1,
-      backgroundColor: "rgba(255,255,255,0.95)",
-      borderRadius: 16,
-      padding: 12,
+    bottomSheet: {
+      backgroundColor: "#ffffff",
+      borderTopLeftRadius: 36,
+      borderTopRightRadius: 36,
+      paddingHorizontal: 24,
+      paddingTop: 16,
+      paddingBottom: isWeb ? 40 : insets.bottom + 20,
+      marginTop: -40,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: -10 },
+      shadowOpacity: 0.08,
+      shadowRadius: 30,
+      elevation: 20,
+    },
+    handleBarWrap: {
+      alignItems: "center",
+      marginBottom: 24,
+    },
+    handleBar: {
+      width: 40,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: "#E2E8F0",
+    },
+    sheetTitle: {
+      fontSize: 24,
+      fontFamily: "Inter_700Bold",
+      color: "#0F172A",
+      marginBottom: 24,
+      textAlign: "center",
+    },
+    authContainer: {
+      gap: 16,
+    },
+    primaryBtn: {
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      shadowColor: "#000",
+      gap: 10,
+      backgroundColor: "#1D4ED8",
+      paddingVertical: 16,
+      borderRadius: 16,
+      shadowColor: "#1D4ED8",
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
+      shadowOpacity: 0.2,
       shadowRadius: 12,
       elevation: 4,
     },
-    jobCardText: {
-      fontSize: 11,
+    primaryBtnText: {
+      fontSize: 16,
       fontFamily: "Inter_600SemiBold",
-      color: "#1E293B",
-      marginTop: 8,
-      textAlign: "center",
-    },
-    bottomSheet: {
-      backgroundColor: colors.card,
-      borderTopLeftRadius: 32,
-      borderTopRightRadius: 32,
-      paddingHorizontal: 24,
-      paddingTop: 30,
-      paddingBottom: isWeb ? 40 : insets.bottom + 20,
-      marginTop: -24,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: -8 },
-      shadowOpacity: 0.1,
-      shadowRadius: 24,
-      elevation: 10,
-    },
-    benefitsContainer: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: 12,
-      marginBottom: 32,
-    },
-    benefitItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      backgroundColor: "#F0FDF4",
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      borderRadius: 100,
-    },
-    benefitText: {
-      fontSize: 13,
-      fontFamily: "Inter_500Medium",
-      color: "#065F46",
-    },
-    authContainer: {
-      gap: 14,
+      color: "#fff",
     },
     googleBtn: {
       flexDirection: "row",
@@ -358,65 +399,56 @@ function getStyles(colors: ReturnType<typeof useColors>, insets: any, isWeb: boo
       fontFamily: "Inter_600SemiBold",
       color: "#0F172A",
     },
-    phoneBtn: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 12,
-      backgroundColor: "#EEF2FF",
-      paddingVertical: 16,
-      borderRadius: 16,
-      borderWidth: 1.5,
-      borderColor: "#C7D2FE",
-    },
-    phoneBtnText: {
-      fontSize: 16,
-      fontFamily: "Inter_600SemiBold",
-      color: colors.primary,
-    },
     guestBtn: {
       alignItems: "center",
       justifyContent: "center",
-      paddingVertical: 16,
-      borderRadius: 16,
+      paddingVertical: 12,
     },
     guestBtnText: {
       fontSize: 15,
       fontFamily: "Inter_600SemiBold",
       color: "#64748B",
     },
+    benefitsWrap: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 16,
+      marginTop: 24,
+      paddingTop: 20,
+      borderTopWidth: 1,
+      borderTopColor: "#F1F5F9",
+    },
     modalOverlay: {
       flex: 1,
       justifyContent: "flex-end",
-      backgroundColor: "rgba(0,0,0,0.55)",
+      backgroundColor: "rgba(0,0,0,0.4)",
     },
     modalSheet: {
       backgroundColor: "#FFFFFF",
-      paddingTop: 24,
-      paddingHorizontal: 16,
+      paddingTop: 16,
+      paddingHorizontal: 20,
       paddingBottom: isWeb ? 40 : insets.bottom + 24,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
+      borderTopLeftRadius: 32,
+      borderTopRightRadius: 32,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: -8 },
+      shadowOpacity: 0.1,
+      shadowRadius: 24,
+      elevation: 10,
     },
     modalHeaderRow: {
-      position: "relative",
       alignItems: "center",
-      justifyContent: "center",
-      marginBottom: 16,
-    },
-    closeButton: {
-      position: "absolute",
-      right: 0,
-      padding: 8,
+      marginBottom: 24,
     },
     modalHandle: {
-      width: 48,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: "rgba(15, 23, 42, 0.16)",
+      width: 40,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: "#E2E8F0",
     },
     modalTitle: {
-      fontSize: 18,
+      fontSize: 20,
       color: "#0F172A",
       fontFamily: "Inter_700Bold",
       textAlign: "center",
@@ -426,45 +458,44 @@ function getStyles(colors: ReturnType<typeof useColors>, insets: any, isWeb: boo
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingVertical: 16,
-      paddingHorizontal: 16,
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: "#E5E7EB",
+      paddingVertical: 18,
+      paddingHorizontal: 20,
+      borderRadius: 20,
+      borderWidth: 1.5,
+      borderColor: "#F1F5F9",
       backgroundColor: "#FFFFFF",
-      marginBottom: 16,
+      marginBottom: 12,
     },
     optionCardSelected: {
-      backgroundColor: "#DBEAFE",
-      borderColor: "#1D4ED8",
+      backgroundColor: "#EFF6FF",
+      borderColor: "#3B82F6",
     },
     optionCardText: {
       fontSize: 16,
       color: "#0F172A",
-      fontFamily: "Inter_400Regular",
+      fontFamily: "Inter_500Medium",
     },
     optionCardTextSelected: {
       color: "#1D4ED8",
       fontFamily: "Inter_700Bold",
     },
     radioOuter: {
-      width: 20,
-      height: 20,
-      borderRadius: 10,
-      borderWidth: 1.5,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      borderWidth: 2,
       borderColor: "#CBD5E1",
       alignItems: "center",
       justifyContent: "center",
     },
     radioOuterSelected: {
-      borderColor: "#1D4ED8",
-      backgroundColor: "#DBEAFE",
+      borderColor: "#3B82F6",
     },
     radioInner: {
       width: 10,
       height: 10,
       borderRadius: 5,
-      backgroundColor: "#1D4ED8",
+      backgroundColor: "#3B82F6",
     },
   });
 }

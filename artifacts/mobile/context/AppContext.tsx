@@ -13,7 +13,16 @@ import { supabase } from "@/lib/supabaseClient";
 
 export type UserRole = "seeker" | "employer" | null;
 
+export enum Locale {
+  en = "en",
+  hi = "hi",
+  hinglish = "hinglish",
+}
+
+export type LocaleKey = `${Locale}`;
+
 export interface UserProfile {
+
   name: string;
   phone: string;
   role: UserRole;
@@ -22,7 +31,8 @@ export interface UserProfile {
   skills: string[];
   experience: string;
   education: string;
-  language: string;
+  // Strict locale enum (replaces legacy free-form language strings)
+  locale: Locale;
   bio: string;
   companyName?: string;
   companyDescription?: string;
@@ -31,6 +41,7 @@ export interface UserProfile {
   resumeUri?: string;
   profileScore: number;
 }
+
 
 export type DraftJob = {
   title: string;
@@ -97,13 +108,15 @@ const DEFAULT_USER: UserProfile = {
   skills: [],
   experience: "Fresher",
   education: "B.A.",
-  language: "Hindi / English",
+  // Legacy users may have stored `language`; we migrate that to this strict enum below.
+  locale: Locale.hi,
   bio: "",
   resumeUploaded: false,
   resumeName: "",
   resumeUri: "",
   profileScore: 40,
 };
+
 
 function computeScore(u: UserProfile): number {
   let score = 0;
@@ -189,6 +202,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         AsyncStorage.getItem("@rozgaar_onboarded"),
       ]);
 
+
       if (onboardedStatus === "true") {
         setHasOnboarded(true);
       }
@@ -197,7 +211,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (posted) setPostedJobs(JSON.parse(posted));
 
       // Auth-aware user restore (fallback)
-      if (userData) setUser({ ...DEFAULT_USER, ...JSON.parse(userData) });
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        // Migrate legacy `language` field to strict `locale`.
+        const migratedLocale =
+          parsed?.locale ?? (normalizeLegacyLanguageToLocale(parsed?.language) as Locale);
+
+        setUser({
+          ...DEFAULT_USER,
+          ...parsed,
+          locale: migratedLocale,
+        });
+      }
+
 
       // Load authoritative profile row if Supabase session exists.
       const { loadSupabaseProfileFromSession } = await import("../lib/appSupabaseProfile");
@@ -391,11 +417,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem("@rozgaar_onboarded", "true");
   }
 
-  async function setLanguage(lang: string) {
-    const updated: UserProfile = { ...user, language: lang };
+  function normalizeLegacyLanguageToLocale(lang: any): Locale {
+    // Accept legacy stored values from previous app versions.
+    if (lang === Locale.en || lang === "English") return Locale.en;
+    if (lang === Locale.hi || lang === "Hindi") return Locale.hi;
+    if (lang === Locale.hinglish || lang === "Hinglish") return Locale.hinglish;
+    if (lang === "Hindi / English") return Locale.hi;
+    return Locale.hi;
+  }
+
+  async function setLanguage(lang: Locale | string) {
+    const locale = normalizeLegacyLanguageToLocale(lang);
+    const updated: UserProfile = { ...user, locale };
     setUser(updated);
     await AsyncStorage.setItem("@rozgaar_user", JSON.stringify(updated));
   }
+
 
   async function setGuestRole(role: UserRole) {
     const updated = { ...user, role, isAuthenticated: false };
@@ -650,6 +687,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
   async function applyToJob(jobId: string) {
+    if (!user.isAuthenticated) {
+      throw new Error("Must be logged in to apply");
+    }
     if (appliedJobIds.includes(jobId)) return;
 
     // Snapshot pre-optimistic state for rollback on failure.

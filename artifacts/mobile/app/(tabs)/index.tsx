@@ -51,10 +51,34 @@ export default function HomeScreen() {
   const router = useRouter();
   const { user, selectedLocality, setSelectedLocality, postedJobs, applications, savedJobIds, requireAuth } = useApp();
   const { t } = useTranslation();
-  const [search, setSearch] = useState("");
 
-  const requireAuthAction = (action: () => void, options?: { title?: string; description?: string; maybeLaterText?: string }) => {
-    requireAuth(action, options);
+  const isWeb = Platform.OS === "web";
+
+  const [search, setSearch] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [employerMetrics, setEmployerMetrics] = useState({
+    jobsPosted: 0,
+    activeJobs: 0,
+    totalApplicants: 0,
+    upcomingInterviews: 0,
+  });
+
+  // Conservative derived metrics (no new backend logic)
+  const seekerAppsCount = applications.length;
+  const seekerInterviewsCount = applications.filter((a) => a.status === "interview").length;
+
+  // AppContext contract is inconsistent across branches; keep a safe wrapper
+  const requireAuthAction = (
+    action: () => void,
+    options?: { title?: string; description?: string; maybeLaterText?: string }
+  ) => {
+    // If requireAuth is a function, call it. Otherwise, just run the action.
+    if (typeof (requireAuth as any) === "function") {
+      return (requireAuth as any)(action, options);
+    }
+    action();
   };
 
   useEffect(() => {
@@ -67,18 +91,18 @@ export default function HomeScreen() {
 
     // Use pure local state to satisfy Phase 8 requirements
     const activeJobs = postedJobs.filter(j => true).length; // using true since status override is handled in AppContext locally
-    
+
     // Total applicants across all jobs belonging to this employer
     const totalApps = applications.length;
     const upcomingInterviews = applications.filter(a => a.status === "interview").length;
-    
+
     setEmployerMetrics({
       jobsPosted: postedJobs.length,
       activeJobs: activeJobs,
       totalApplicants: totalApps,
       upcomingInterviews,
     });
-  }, [user.role, refreshing, postedJobs, applications]);
+  }, [user.role, postedJobs, applications]);
 
   const allJobs = postedJobs;
   const urgentJobs = useMemo(() => allJobs.filter((job) => job.isUrgent), [allJobs]);
@@ -130,10 +154,10 @@ export default function HomeScreen() {
   }, [allJobs, search, selectedLocality]);
 
   async function onRefresh() {
-    setRefreshing(true);
+    setIsRefreshing(true);
     setLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 900));
-    setRefreshing(false);
+    setIsRefreshing(false);
     setLoading(false);
   }
 
@@ -146,7 +170,7 @@ export default function HomeScreen() {
         style={styles.container}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         contentContainerStyle={[styles.scroll, { paddingBottom: isWeb ? 100 : 110 }]}
       >
@@ -292,7 +316,7 @@ export default function HomeScreen() {
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         contentContainerStyle={[styles.scroll, { paddingBottom: isWeb ? 100 : 110 }]}
         ListHeaderComponent={
@@ -1144,6 +1168,31 @@ function getStyles(colors: ReturnType<typeof useColors>) {
       gap: 10,
       marginTop: 18,
     },
+
+    statBox: {
+      flex: 1,
+      minWidth: 90,
+      backgroundColor: "rgba(255,255,255,0.92)",
+      borderRadius: 16,
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: "#E0E7FF",
+    },
+    statValue: {
+      fontSize: 18,
+      fontFamily: "Inter_700Bold",
+      color: "#2563EB",
+    },
+    statLabel: {
+      fontSize: 12,
+      fontFamily: "Inter_500Medium",
+      color: "#64748B",
+      marginTop: 4,
+    },
+
     quickActionsRow: {
       flexDirection: "row",
       gap: 10,
@@ -1201,16 +1250,18 @@ function getStyles(colors: ReturnType<typeof useColors>) {
       color: "#2563EB",
     },
     trendingCard: {
-      width: 130,
+      width: 140,
       backgroundColor: "#fff",
-      borderRadius: 20,
-      padding: 14,
+      borderRadius: 24,
+      padding: 16,
       alignItems: "center",
+      borderWidth: 1,
+      borderColor: "rgba(0,0,0,0.03)",
       shadowColor: "#0F172A",
-      shadowOffset: { width: 0, height: 4 },
+      shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.06,
-      shadowRadius: 12,
-      elevation: 2,
+      shadowRadius: 20,
+      elevation: 3,
     },
     trendingLogo: {
       width: 50,
@@ -1242,26 +1293,34 @@ function getStyles(colors: ReturnType<typeof useColors>) {
       color: "#2563EB",
     },
     localityChip: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 20,
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: 24,
       backgroundColor: "#fff",
+      borderWidth: 1,
+      borderColor: "rgba(0,0,0,0.03)",
       shadowColor: "#0F172A",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.04,
+      shadowRadius: 12,
       elevation: 2,
     },
     localityChipActive: {
       backgroundColor: colors.primary,
+      borderColor: colors.primary,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.2,
+      shadowRadius: 12,
     },
     localityText: {
-      fontSize: 13,
+      fontSize: 14,
       fontFamily: "Inter_500Medium",
     },
     localityTextActive: {
       color: "#fff",
       fontFamily: "Inter_700Bold",
+      letterSpacing: 0.2,
     },
     horizontalScroll: {
       gap: 10,
@@ -1269,7 +1328,7 @@ function getStyles(colors: ReturnType<typeof useColors>) {
       paddingBottom: 4,
     },
     horizontalCard: {
-      width: 290,
+      width: 310,
     },
     companyScroll: {
       gap: 10,
@@ -1277,15 +1336,17 @@ function getStyles(colors: ReturnType<typeof useColors>) {
       paddingBottom: 12,
     },
     companyCard: {
-      width: 176,
-      borderRadius: 20,
+      width: 186,
+      borderRadius: 24,
       backgroundColor: "#fff",
-      padding: 14,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: "rgba(0,0,0,0.03)",
       shadowColor: "#0F172A",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.05,
-      shadowRadius: 12,
-      elevation: 2,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.06,
+      shadowRadius: 20,
+      elevation: 3,
     },
     companyName: {
       fontSize: 15,

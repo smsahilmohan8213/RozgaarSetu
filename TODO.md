@@ -1,6 +1,12 @@
-- [ ] P0-2 Resume Upload
-  - [ ] Fix resume upload to Supabase Storage + persist resume_path/resume_url into public.profiles
-  - [ ] Implement open/replace/delete resume using storage object path/url
-  - [ ] Fix profile screen to use AppContext resume methods (no device uri in DB)
-  - [ ] Fix profile hydration from Supabase (resume_url/path -> resumeUri/resumeName)
-  - [ ] Report files changed + storage ops + exact Supabase queries + commit msg + launch readiness impact
+# TODO
+
+## Locale architecture migration (Step 1 only)
+- [x] Create dedicated locales structure under artifacts/mobile/locales/
+  - [x] locales/types.ts
+  - [x] locales/dictionary.ts
+  - [x] locales/index.ts
+- [x] Migrate artifacts/mobile/hooks/useTranslation.ts to consume locales/dictionary
+- [ ] Fix remaining TypeScript errors from profile screen (user.language references)
+- [ ] Run TypeScript validation
+
+

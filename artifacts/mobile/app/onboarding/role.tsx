@@ -8,12 +8,13 @@ import { useColors } from "@/hooks/useColors";
 import { useApp } from "@/context/AppContext";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import Animated, { FadeInDown, ZoomIn } from "react-native-reanimated";
 
 export default function RoleSelectionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { setGuestRole, completeOnboarding } = useApp();
+  const { setGuestRole } = useApp();
   const { t } = useTranslation();
   const isWeb = Platform.OS === "web";
   
@@ -30,7 +31,9 @@ export default function RoleSelectionScreen() {
 
   return (
     <LinearGradient
-      colors={[colors.gradientStart || "#1E40AF", colors.gradientEnd || "#3B82F6", "#60A5FA"]}
+      colors={["#0F172A", "#1E3A8A", "#3B82F6"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={styles.gradient}
     >
       <View style={[styles.container, { paddingTop: isWeb ? 100 : insets.top + 40, paddingBottom: isWeb ? 50 : insets.bottom + 30 }]}>
@@ -38,18 +41,22 @@ export default function RoleSelectionScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-          <View style={styles.logoBox}>
+          <Animated.View entering={ZoomIn.duration(600).springify()} style={styles.logoBox}>
             <Image
               source={require("@/assets/images/icon.png")}
               style={styles.logoImage}
               resizeMode="contain"
             />
-          </View>
-          <Text style={styles.appName}>RozgaarSetu</Text>
-          <Text style={styles.tagline}>{t("Select your role")}</Text>
+          </Animated.View>
+          <Animated.Text entering={FadeInDown.duration(600).delay(100).springify()} style={styles.appName}>
+            RozgaarSetu
+          </Animated.Text>
+          <Animated.Text entering={FadeInDown.duration(600).delay(200).springify()} style={styles.tagline}>
+            {t("Select your role")}
+          </Animated.Text>
         </View>
 
-        <View style={styles.card}>
+        <Animated.View entering={FadeInDown.duration(800).delay(400).springify()} style={styles.card}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>{t("I am a...")}</Text>
           <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>{t("Choose how you want to explore the app.")}</Text>
 
@@ -58,7 +65,7 @@ export default function RoleSelectionScreen() {
               styles.roleBtn,
               {
                 borderColor: selectedRole === "seeker" ? colors.primary : colors.border,
-                backgroundColor: selectedRole === "seeker" ? colors.accent : colors.card
+                backgroundColor: selectedRole === "seeker" ? "#EFF6FF" : colors.card
               }
             ]}
             onPress={() => {
@@ -67,7 +74,9 @@ export default function RoleSelectionScreen() {
             }}
             activeOpacity={0.8}
           >
-            <Ionicons name="person" size={28} color={selectedRole === "seeker" ? colors.primary : colors.foreground} />
+            <View style={[styles.iconWrap, { backgroundColor: selectedRole === "seeker" ? "#DBEAFE" : "#F1F5F9" }]}>
+              <Ionicons name="person" size={24} color={selectedRole === "seeker" ? colors.primary : "#64748B"} />
+            </View>
             <View style={styles.roleText}>
               <Text style={[styles.roleName, { color: colors.foreground }]}>
                 {t("Job Seeker")}
@@ -84,7 +93,7 @@ export default function RoleSelectionScreen() {
               styles.roleBtn,
               {
                 borderColor: selectedRole === "employer" ? colors.primary : colors.border,
-                backgroundColor: selectedRole === "employer" ? colors.accent : colors.card
+                backgroundColor: selectedRole === "employer" ? "#EFF6FF" : colors.card
               }
             ]}
             onPress={() => {
@@ -93,7 +102,9 @@ export default function RoleSelectionScreen() {
             }}
             activeOpacity={0.8}
           >
-            <MaterialCommunityIcons name="office-building" size={28} color={selectedRole === "employer" ? colors.primary : colors.foreground} />
+            <View style={[styles.iconWrap, { backgroundColor: selectedRole === "employer" ? "#DBEAFE" : "#F1F5F9" }]}>
+              <MaterialCommunityIcons name="office-building" size={24} color={selectedRole === "employer" ? colors.primary : "#64748B"} />
+            </View>
             <View style={styles.roleText}>
               <Text style={[styles.roleName, { color: colors.foreground }]}>
                 {t("Employer")}
@@ -106,14 +117,14 @@ export default function RoleSelectionScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.primaryBtn, { backgroundColor: selectedRole ? colors.primary : colors.border }]}
+            style={[styles.primaryBtn, { backgroundColor: selectedRole ? colors.primary : "#E2E8F0" }]}
             onPress={handleComplete}
             disabled={!selectedRole}
             activeOpacity={0.8}
           >
-            <Text style={[styles.primaryBtnText, { color: selectedRole ? "#fff" : colors.mutedForeground }]}>{t("Start Exploring")}</Text>
+            <Text style={[styles.primaryBtnText, { color: selectedRole ? "#fff" : "#94A3B8" }]}>{t("Start Exploring")}</Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </View>
     </LinearGradient>
   );
@@ -143,72 +154,87 @@ function getStyles(colors: ReturnType<typeof useColors>) {
       width: 80,
       height: 80,
       borderRadius: 24,
-      backgroundColor: "rgba(255,255,255,0.2)",
+      backgroundColor: "rgba(255,255,255,0.15)",
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: 12,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.3)",
     },
-    logoImage: { width: 64, height: 64 },
+    logoImage: { width: 56, height: 56 },
     appName: {
       fontSize: 32,
       fontFamily: "Inter_700Bold",
       color: "#fff",
+      letterSpacing: -1,
     },
     tagline: {
       fontSize: 16,
-      color: "rgba(255,255,255,0.9)",
+      color: "rgba(255,255,255,0.8)",
       fontFamily: "Inter_500Medium",
       marginTop: 6,
     },
     card: {
       width: "100%",
       backgroundColor: colors.card,
-      borderRadius: 24,
+      borderRadius: 32,
       padding: 24,
       shadowColor: "#000",
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.15,
+      shadowOffset: { width: 0, height: -8 },
+      shadowOpacity: 0.1,
       shadowRadius: 24,
-      elevation: 10,
+      elevation: 20,
     },
     cardTitle: {
-      fontSize: 22,
+      fontSize: 24,
       fontFamily: "Inter_700Bold",
       marginBottom: 6,
     },
     cardSub: {
-      fontSize: 14,
+      fontSize: 15,
       fontFamily: "Inter_400Regular",
-      marginBottom: 24,
+      marginBottom: 28,
     },
     roleBtn: {
       flexDirection: "row",
       alignItems: "center",
       gap: 14,
       padding: 16,
-      borderRadius: 16,
+      borderRadius: 20,
       borderWidth: 1.5,
       marginBottom: 12,
     },
+    iconWrap: {
+      width: 48,
+      height: 48,
+      borderRadius: 16,
+      alignItems: "center",
+      justifyContent: "center",
+    },
     roleText: { flex: 1 },
     roleName: {
-      fontSize: 16,
+      fontSize: 17,
       fontFamily: "Inter_600SemiBold",
     },
     roleDesc: {
-      fontSize: 13,
+      fontSize: 14,
       fontFamily: "Inter_400Regular",
-      marginTop: 2,
+      marginTop: 4,
     },
     primaryBtn: {
-      paddingVertical: 16,
+      paddingVertical: 18,
       borderRadius: 16,
       alignItems: "center",
-      marginTop: 12,
+      marginTop: 16,
+      shadowColor: "#1D4ED8",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 4,
     },
     primaryBtnText: {
-      fontSize: 16,
-      fontFamily: "Inter_700Bold",
+      fontSize: 17,
+      fontFamily: "Inter_600SemiBold",
     },
   });
 }
