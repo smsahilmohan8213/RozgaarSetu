@@ -39,7 +39,7 @@ export default function JobsScreen() {
   const router = useRouter();
   const isWeb = Platform.OS === "web";
 
-  const { postedJobs, user, setEditingJobId, deletePostedJob, setEmployerJobStatus, employerJobStatuses, requireAuth } = useApp();
+  const { postedJobs, applications, user, setEditingJobId, deletePostedJob, setEmployerJobStatus, employerJobStatuses, requireAuth } = useApp();
   const { t } = useTranslation();
 
   const [search, setSearch] = useState("");
@@ -111,7 +111,7 @@ export default function JobsScreen() {
 
   const employerStats = useMemo(() => {
     const activeJobs = postedJobs.length;
-    const totalApplicants = postedJobs.reduce((sum, job) => sum + job.applicants, 0);
+    const totalApplicants = applications.filter((a) => postedJobs.some((j) => j.id === a.jobId)).length;
     const urgentJobs = postedJobs.filter((job) => job.isUrgent).length;
     return { activeJobs, totalApplicants, urgentJobs };
   }, [postedJobs]);
@@ -934,13 +934,14 @@ function EmployerJobCard({
 }) {
   const isClosed = status === "closed";
   const isPaused = status === "paused";
+  const { t } = useTranslation();
 
   return (
     <View style={empCardStyles.card}>
       <View style={empCardStyles.headerRow}>
         <View style={empCardStyles.titleWrap}>
           <Text style={empCardStyles.title} numberOfLines={1}>{job.title}</Text>
-          <Text style={empCardStyles.meta}>{job.location} · {job.salary}</Text>
+          <Text style={empCardStyles.meta}>{t(job.location)} · {job.salary}</Text>
         </View>
         <View style={[
           empCardStyles.statusBadge, 
@@ -960,7 +961,7 @@ function EmployerJobCard({
       <View style={empCardStyles.statsRow}>
         <TouchableOpacity style={empCardStyles.statItem} onPress={onApplicants}>
           <Ionicons name="people" size={16} color="#2563EB" />
-          <Text style={empCardStyles.statText}>{job.applicants} Applicants</Text>
+          <Text style={empCardStyles.statText}>{applications.filter((a) => a.jobId === job.id).length} Applicants</Text>
         </TouchableOpacity>
         <View style={empCardStyles.statItem}>
           <Ionicons name="time-outline" size={16} color="#64748B" />

@@ -53,7 +53,7 @@ export default function AdminScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === "web";
-  const { postedJobs, user } = useApp();
+  const { postedJobs, applications, user } = useApp();
 
   const [pendingList, setPendingList] = useState(PENDING_EMPLOYERS);
   const [reportedList, setReportedList] = useState(REPORTED_JOBS);

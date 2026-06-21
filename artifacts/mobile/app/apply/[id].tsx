@@ -194,7 +194,7 @@ export default function ApplyScreen() {
                   </Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.profileName}>{user.name || "Guest User"}</Text>
+                  <Text style={styles.profileName}>{user.name || ""}</Text>
                   <Text style={styles.profilePhone}>+91 {user.phone || "XXXXXXXXXX"}</Text>
                 </View>
                 <View style={styles.profileScore}>

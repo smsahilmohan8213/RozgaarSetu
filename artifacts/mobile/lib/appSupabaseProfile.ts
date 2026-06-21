@@ -6,6 +6,7 @@ import { Locale } from "@/context/AppContext";
 
 
 const DEFAULT_USER: UserProfile = {
+  id: "",
   name: "",
   phone: "",
   role: null,
@@ -91,6 +92,7 @@ export async function loadSupabaseProfileFromSession() {
     const next: UserProfile = {
       ...DEFAULT_USER,
       ...existing, // preserve language, location, skills etc. from local state
+      id: userId,
       name: profileRow.full_name ?? existing.name ?? "",
       phone: profileRow.phone ?? existing.phone ?? "",
       role: role ?? existing.role,

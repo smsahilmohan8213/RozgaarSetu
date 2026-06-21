@@ -146,13 +146,13 @@ export function JobCard({ job, compact = false }: JobCardProps) {
         </View>
         <View style={styles.locationPill}>
           <Ionicons name="location-outline" size={14} color="#64748B" />
-          <Text style={styles.locationText}>{job.location}</Text>
+          <Text style={styles.locationText}>{t(job.location)}</Text>
         </View>
       </View>
 
       {!compact && (
         <View style={styles.metaGrid}>
-          <MetaChip icon="briefcase-outline" label={job.experience} />
+          <MetaChip icon="briefcase-outline" label={t(job.experience)} />
           <MetaChip icon="time-outline" label={job.postedTime} />
           {job.isFreshersOk && (
             <MetaChip icon="school-outline" label={t("Freshers OK")} highlight />

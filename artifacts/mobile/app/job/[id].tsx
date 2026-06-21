@@ -23,7 +23,7 @@ export default function JobDetailScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { isJobSaved, toggleSaveJob, isJobApplied, user, postedJobs, requireAuth } = useApp();
+  const { isJobSaved, toggleSaveJob, isJobApplied, user, postedJobs, applications, requireAuth } = useApp();
   const isWeb = Platform.OS === "web";
 
   const allJobs = postedJobs;
@@ -141,7 +141,7 @@ export default function JobDetailScreen() {
             <GridItem icon="briefcase-outline" label="Experience" value={job.experience} />
             <GridItem icon="people-outline" label="Job Type" value={job.jobType} />
             <GridItem icon="time-outline" label="Posted" value={job.postedTime} />
-            <GridItem icon="person-outline" label="Applicants" value={`${job.applicants} applied`} />
+            <GridItem icon="person-outline" label="Applicants" value={`${applications.filter((a) => a.jobId === job.id).length} applied`} />
           </View>
 
           {job.isFreshersOk && (

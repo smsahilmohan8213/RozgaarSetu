@@ -56,9 +56,6 @@ export default function EmployerApplicantsScreen() {
 
   const hasResume = (a: ApplicationRow) => Boolean(a.resume_url || a.resume_path);
 
-
-
-
   const [applicants, setApplicants] = useState<ApplicationRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -73,7 +70,7 @@ export default function EmployerApplicantsScreen() {
       const { data, error } = await supabase
         .from("applications")
         .select(
-          "id, applicant_id, applicant_name, phone, status, applied_at, viewed_at, shortlisted_at, rejected_at, hired_at, resume_path, resume_url"
+          "id, applicant_id, status, applied_at, viewed_at, shortlisted_at, rejected_at, hired_at, resume_path, resume_url"
         )
         .eq("job_id", jobId)
         .order("applied_at", { ascending: false });
@@ -85,7 +82,28 @@ export default function EmployerApplicantsScreen() {
         return;
       }
 
-      setApplicants((Array.isArray(data) ? data : []) as ApplicationRow[]);
+      const apps = (Array.isArray(data) ? data : []) as ApplicationRow[];
+      
+      if (apps.length > 0) {
+        const applicantIds = Array.from(new Set(apps.map(a => a.applicant_id)));
+        const { data: profilesData } = await supabase.from("profiles").select("id, full_name, phone").in("id", applicantIds);
+        
+        if (profilesData) {
+          const profileMap = new Map(profilesData.map(p => [p.id, p]));
+          apps.forEach(a => {
+            const p = profileMap.get(a.applicant_id);
+            if (p) {
+              a.applicant_name = p.full_name;
+              a.phone = p.phone;
+            } else {
+              a.applicant_name = "Unknown Applicant";
+              a.phone = "";
+            }
+          });
+        }
+      }
+
+      setApplicants(apps);
     })().finally(() => {
       if (!mounted) return;
       setIsLoading(false);

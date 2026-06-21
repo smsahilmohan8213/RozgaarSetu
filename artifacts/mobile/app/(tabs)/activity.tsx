@@ -6,12 +6,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { useTranslation } from "@/hooks/useTranslation";
 import { ActivityEvent, ActivityType } from "@/data/activity";
 
 export default function ActivityScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, applications, postedJobs } = useApp();
   const isWeb = Platform.OS === "web";
 
@@ -31,7 +33,7 @@ export default function ActivityScreen() {
           id: `e_app_${app.id}`,
           type: "new_applicant",
           title: "New Applicant",
-          description: `${app.name} applied for ${job.title}.`,
+          description: `${app.name} ${t("applied for")} ${job.title}.`,
           timestamp: app.appliedDate,
           jobId: app.jobId,
           applicantId: app.id,
@@ -43,7 +45,7 @@ export default function ActivityScreen() {
             id: `e_rev_${app.id}`,
             type: "application_reviewed",
             title: "Application Reviewed",
-            description: `You shortlisted ${app.name} for ${job.title}.`,
+            description: `${t("You shortlisted")} ${app.name} ${t("for")} ${job.title}.`,
             // Mock a recent timestamp for the review action
             timestamp: new Date(new Date(app.appliedDate).getTime() + 1000 * 60 * 60).toISOString(),
             jobId: app.jobId,
@@ -54,7 +56,7 @@ export default function ActivityScreen() {
       });
     } else {
       // Seeker events
-      const myApps = applications.filter(a => a.name === user.name || a.name === "Guest User" || a.phone === user.phone);
+      const myApps = applications.filter(a => a.applicant_id === user.id);
       myApps.forEach(app => {
         const job = postedJobs.find(j => j.id === app.jobId);
         const companyName = job?.company || "Company";
@@ -64,7 +66,7 @@ export default function ActivityScreen() {
           id: `s_app_${app.id}`,
           type: "application_submitted",
           title: "Application Submitted",
-          description: `You applied for ${jobTitle} at ${companyName}.`,
+          description: `${t("You applied for")} ${jobTitle} ${t("at")} ${companyName}.`,
           timestamp: app.appliedDate,
           jobId: app.jobId,
           isEmployerEvent: false,
@@ -75,7 +77,7 @@ export default function ActivityScreen() {
             id: `s_rev_${app.id}`,
             type: "application_viewed",
             title: "Application Viewed",
-            description: `${companyName} reviewed your application for ${jobTitle}.`,
+            description: `${companyName} ${t("reviewed your application for")} ${jobTitle}.`,
             timestamp: new Date(new Date(app.appliedDate).getTime() + 1000 * 60 * 60).toISOString(),
             jobId: app.jobId,
             isEmployerEvent: false,
@@ -87,7 +89,7 @@ export default function ActivityScreen() {
             id: `s_short_${app.id}`,
             type: "application_viewed",
             title: "Application Shortlisted",
-            description: `Congratulations! ${companyName} shortlisted you for ${jobTitle}.`,
+            description: `${t("Congratulations!")} ${companyName} ${t("shortlisted you for")} ${jobTitle}.`,
             timestamp: new Date(new Date(app.appliedDate).getTime() + 1000 * 60 * 60 * 2).toISOString(),
             jobId: app.jobId,
             isEmployerEvent: false,
@@ -99,7 +101,7 @@ export default function ActivityScreen() {
             id: `s_rej_${app.id}`,
             type: "profile_updated",
             title: "Application Rejected",
-            description: `Unfortunately, ${companyName} decided not to proceed with your application.`,
+            description: `${t("Unfortunately,")} ${companyName} ${t("decided not to proceed with your application.")}`,
             timestamp: new Date(new Date(app.appliedDate).getTime() + 1000 * 60 * 60 * 2).toISOString(),
             jobId: app.jobId,
             isEmployerEvent: false,
@@ -111,7 +113,7 @@ export default function ActivityScreen() {
             id: `s_int_${app.id}`,
             type: "application_reviewed",
             title: "Interview Scheduled",
-            description: `${companyName} scheduled an interview for ${app.interviewDate} at ${app.interviewTime}.`,
+            description: `${companyName} ${t("scheduled an interview for")} ${app.interviewDate} ${t("at")} ${app.interviewTime}.`,
             timestamp: new Date(new Date(app.appliedDate).getTime() + 1000 * 60 * 60 * 3).toISOString(),
             jobId: app.jobId,
             isEmployerEvent: false,

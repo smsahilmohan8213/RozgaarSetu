@@ -19,7 +19,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useApp } from "@/context/AppContext";
+import { useApp, Locale } from "@/context/AppContext";
 import { LOCALITIES } from "@/data/jobs";
 import { useColors } from "@/hooks/useColors";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -67,29 +67,24 @@ const EXPERIENCE_OPTIONS = [
 ];
 
 const LANGUAGE_OPTIONS = [
-  "Hindi / English",
-  "Hindi",
   "English",
+  "Hindi",
   "Hinglish",
-  "Punjabi",
-  "Bengali",
-  "Tamil",
-  "Marathi",
 ];
 
-function languageLabelToLocale(label: string): "en" | "hi" | "hinglish" {
+function languageLabelToLocale(label: string): Locale {
   switch (label) {
     case "English":
-      return "en";
+      return Locale.en;
     case "Hindi":
-      return "hi";
+      return Locale.hi;
     case "Hinglish":
-      return "hinglish";
+      return Locale.hinglish;
     case "Hindi / English":
-      return "hinglish";
+      return Locale.hinglish;
     default:
       // Keep strict locale type safe.
-      return "hi";
+      return Locale.hi;
   }
 }
 
@@ -114,6 +109,7 @@ export default function ProfileScreen() {
   const isWeb = Platform.OS === "web";
 
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showSkillModal, setShowSkillModal] = useState(false);
   const [showSeekerCard, setShowSeekerCard] = useState(false);
   const [showResumePreview, setShowResumePreview] = useState(false);
@@ -366,12 +362,10 @@ export default function ProfileScreen() {
       </LinearGradient>
 
       {/* ── STATS ROW ── */}
-      <View style={styles.statsRow}>
-        <StatCard value={appliedJobIds.length} label="Applied" icon="send" color="#2563EB" bg="#DBEAFE" />
-        <StatCard value={savedJobIds.length} label="Saved" icon="bookmark" color="#7C3AED" bg="#EDE9FE" />
-        {isEmployer ? (
-          <StatCard value={postedJobs.length} label="Posted" icon="add-circle" color="#059669" bg="#D1FAE5" />
-        ) : (
+      {!isEmployer && (
+        <View style={styles.statsRow}>
+          <StatCard value={appliedJobIds.length} label="Applied" icon="send" color="#2563EB" bg="#DBEAFE" />
+          <StatCard value={savedJobIds.length} label="Saved" icon="bookmark" color="#7C3AED" bg="#EDE9FE" />
           <StatCard
             value={score}
             label="Score"
@@ -380,8 +374,8 @@ export default function ProfileScreen() {
             bg="#FEF3C7"
             suffix="%"
           />
-        )}
-      </View>
+        </View>
+      )}
 
       {/* ── SEEKER-ONLY SECTIONS ── */}
       {!isEmployer && (
@@ -558,120 +552,7 @@ export default function ProfileScreen() {
       )}
 
       {/* ── EMPLOYER SECTIONS ── */}
-      {isEmployer && (
-        <>
-          <View style={styles.dashboardRow}>
-            <StatCard
-              value={postedJobs.length}
-              label="Total Jobs"
-              icon="briefcase"
-              color="#2563EB"
-              bg="#DBEAFE"
-            />
-            <StatCard
-              value={postedJobs.length}
-              label="Active"
-              icon="checkmark-circle"
-              color="#059669"
-              bg="#D1FAE5"
-            />
-            <StatCard
-              value={postedJobs.length === 0 ? 0 : 0}
-              label="Closed"
-              icon="close-circle"
-              color="#64748B"
-              bg="#F1F5F9"
-            />
-            <StatCard
-              value={postedJobs.reduce((sum, j) => sum + j.applicants, 0)}
-              label="Applicants"
-              icon="people"
-              color="#7C3AED"
-              bg="#EDE9FE"
-            />
-          </View>
-
-          <TouchableOpacity style={styles.postJobBtn} onPress={() => router.push("/post-job")} activeOpacity={0.85}>
-            <LinearGradient
-              colors={["#1D4ED8", "#2563EB"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.postJobBtnInner}
-            >
-              <Ionicons name="add-circle" size={22} color="#fff" />
-              <Text style={styles.postJobBtnText}>{t("Post a New Job")}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardHeaderLeft}>
-                <View style={[styles.cardIconWrap, { backgroundColor: "#DBEAFE" }]}>
-                  <Ionicons name="briefcase" size={16} color="#2563EB" />
-                </View>
-                <Text style={styles.cardTitle}>{t("My Job Listings")}</Text>
-              </View>
-              <Text style={styles.listingCount}>
-                {postedJobs.length} {t("active")}
-              </Text>
-            </View>
-
-            {postedJobs.length === 0 ? (
-              <View style={styles.emptyPosted}>
-                <Ionicons name="briefcase-outline" size={36} color="#CBD5E1" />
-                <Text style={styles.emptyPostedText}>{t("No jobs posted yet")}</Text>
-              </View>
-            ) : (
-              postedJobs.map((job, idx) => (
-                <View
-                  key={job.id}
-                  style={[styles.postedRow, idx < postedJobs.length - 1 && styles.postedRowBorder]}
-                >
-                  <View style={[styles.postedLogo, { backgroundColor: job.logoColor + "18" }]}>
-                    <Text style={[styles.postedLogoText, { color: job.logoColor }]}>{job.logoInitials}</Text>
-                  </View>
-                  <View style={styles.postedInfo}>
-                    <Text style={styles.postedTitle} numberOfLines={1}>
-                      {job.title}
-                    </Text>
-                    <Text style={styles.postedMeta}>
-                      {job.location} · {job.salary}
-                    </Text>
-                    <View style={styles.postedBadges}>
-                      {job.isUrgent && (
-                        <View style={styles.urgentBadge}>
-                          <Text style={styles.urgentText}>{t("Urgent")}</Text>
-                        </View>
-                      )}
-                      <Text style={styles.postedTime}>{job.postedTime}</Text>
-                      <View style={styles.applicantBadge}>
-                        <Ionicons name="people" size={12} color="#059669" />
-                        <Text style={styles.applicantText}>
-                          {job.applicants} {t("applicants")}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                  <View style={styles.postedActions}>
-                    <TouchableOpacity
-                      onPress={() => handleEditJob(job.id)}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <Ionicons name="pencil-outline" size={18} color="#2563EB" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteJob(job.id, job.title)}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))
-            )}
-          </View>
-        </>
-      )}
+      {/* Employer dashboard metrics have been removed to prevent duplication. They are only shown in Employer Home. */}
 
       {/* ── SETTINGS ── */}
       <View style={styles.card}>
@@ -689,22 +570,14 @@ export default function ProfileScreen() {
         )}
 
         <MenuItem
-          icon="language-outline"
-          label={`Language (${user.locale === "en" ? "English" : user.locale === "hinglish" ? "Hinglish" : "Hindi"})`}
-          onPress={() => {
-            setEditForm({
-              name: user.name,
-              bio: user.bio,
-              location: user.location,
-              education: user.education,
-              experience: user.experience,
-              language: user.locale,
-              companyName: user.companyName ?? "",
-              companyDescription: user.companyDescription ?? "",
-            });
-            setShowEditModal(true);
-          }}
-        />
+  icon="language-outline"
+  label={`${t("Language")} (${user.locale === "en" ? "English" : user.locale === "hinglish" ? "Hinglish" : "Hindi"})`}
+  onPress={() => {
+    console.log("LANGUAGE_CLICK");
+    setShowEditModal(false);
+    setShowLanguageModal(true);
+  }}
+/>
 
         <MenuItem icon="notifications-outline" label={t("Notifications")} onPress={() => router.push("/notifications")} />
         <MenuItem icon="help-circle-outline" label={t("Help & Support")} />
@@ -771,7 +644,7 @@ export default function ProfileScreen() {
               />
             )}
 
-            <Text style={styles.formLabel}>Preferred Location</Text>
+            <Text style={styles.formLabel}>{t("Preferred Location")}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.optionScroll}>
               {LOCALITIES.filter((l) => l !== "All Areas").map((loc) => (
                 <TouchableOpacity
@@ -780,7 +653,7 @@ export default function ProfileScreen() {
                   onPress={() => setEditForm((p) => ({ ...p, location: loc }))}
                 >
                   <Text style={[styles.optionChipText, editForm.location === loc && styles.optionChipTextActive]}>
-                    {loc}
+                    {t(loc)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -788,7 +661,7 @@ export default function ProfileScreen() {
 
             {!isEmployer && (
               <>
-                <Text style={styles.formLabel}>Education</Text>
+                <Text style={styles.formLabel}>{t("Education")}</Text>
                 <View style={styles.optionGrid}>
                   {EDUCATION_OPTIONS.map((edu) => (
                     <TouchableOpacity
@@ -805,7 +678,7 @@ export default function ProfileScreen() {
                   ))}
                 </View>
 
-                <Text style={styles.formLabel}>Experience</Text>
+                <Text style={styles.formLabel}>{t("Experience")}</Text>
                 <View style={styles.optionGrid}>
                   {EXPERIENCE_OPTIONS.map((exp) => (
                     <TouchableOpacity
@@ -817,34 +690,6 @@ export default function ProfileScreen() {
                         style={[styles.optionChipText, editForm.experience === exp && styles.optionChipTextActive]}
                       >
                         {exp}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <Text style={styles.formLabel}>Language</Text>
-                <View style={styles.optionGrid}>
-                  {LANGUAGE_OPTIONS.map((lang) => (
-                    <TouchableOpacity
-                      key={lang}
-                      style={[
-                        styles.optionChip,
-                        editForm.language === languageLabelToLocale(lang) && styles.optionChipActive,
-                      ]}
-                      onPress={() =>
-                        setEditForm((p) => ({
-                          ...p,
-                          language: languageLabelToLocale(lang) as any,
-                        }))
-                      }
-                    >
-                      <Text
-                        style={[
-                          styles.optionChipText,
-                          editForm.language === languageLabelToLocale(lang) && styles.optionChipTextActive,
-                        ]}
-                      >
-                        {lang}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -866,11 +711,52 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
+      {/* ── LANGUAGE MODAL ── */}
+      <Modal visible={showLanguageModal} animationType="slide" presentationStyle="pageSheet">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t("Language")}</Text>
+            <TouchableOpacity onPress={() => setShowLanguageModal(false)} style={styles.modalClose}>
+              <Ionicons name="close" size={22} color="#0F172A" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+            <View style={styles.optionGrid}>
+              {LANGUAGE_OPTIONS.map((lang) => (
+                <TouchableOpacity
+                  key={lang}
+                  style={[
+                    styles.optionChip,
+                    user.locale === languageLabelToLocale(lang) && styles.optionChipActive,
+                  ]}
+                  onPress={async () => {
+                    await updateProfile({ locale: languageLabelToLocale(lang) });
+                    setShowLanguageModal(false);
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.optionChipText,
+                      user.locale === languageLabelToLocale(lang) && styles.optionChipTextActive,
+                    ]}
+                  >
+                    {lang}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={{ height: 20 }} />
+          </ScrollView>
+        </View>
+      </Modal>
+
       {/* ── ADD SKILL MODAL ── */}
       <Modal visible={showSkillModal} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Add Skills</Text>
+            <Text style={styles.modalTitle}>{t("Add Skills") || "Add Skills"}</Text>
             <TouchableOpacity onPress={() => setShowSkillModal(false)} style={styles.modalClose}>
               <Ionicons name="close" size={22} color="#0F172A" />
             </TouchableOpacity>
@@ -890,11 +776,11 @@ export default function ProfileScreen() {
                 }}
               />
               <TouchableOpacity style={styles.skillAddBtn} onPress={() => handleAddSkill(newSkill)} activeOpacity={0.85}>
-                <Text style={styles.skillAddBtnText}>Add</Text>
+                <Text style={styles.skillAddBtnText}>{t("Add")}</Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.suggestedTitle}>Popular Skills</Text>
+            <Text style={styles.suggestedTitle}>{t("Popular Skills") || "Popular Skills"}</Text>
             <View style={styles.optionGrid}>
               {SUGGESTED_SKILLS.filter((s) => !user.skills.includes(s)).map((skill) => (
                 <TouchableOpacity key={skill} style={styles.suggestedChip} onPress={() => handleAddSkill(skill)} activeOpacity={0.8}>
@@ -906,7 +792,7 @@ export default function ProfileScreen() {
 
             {user.skills.length > 0 && (
               <>
-                <Text style={styles.suggestedTitle}>My Skills</Text>
+                <Text style={styles.suggestedTitle}>{t("My Skills")}</Text>
                 <View style={styles.optionGrid}>
                   {user.skills.map((skill) => (
                     <TouchableOpacity
@@ -926,7 +812,7 @@ export default function ProfileScreen() {
 
           <View style={styles.modalFooter}>
             <TouchableOpacity style={styles.saveBtn} onPress={() => setShowSkillModal(false)} activeOpacity={0.85}>
-              <Text style={styles.saveBtnText}>Done</Text>
+              <Text style={styles.saveBtnText}>{t("Done") || "Done"}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -936,14 +822,14 @@ export default function ProfileScreen() {
       <Modal visible={showSeekerCard} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>My Job Seeker Card</Text>
+            <Text style={styles.modalTitle}>{t("My Job Seeker Card") || "My Job Seeker Card"}</Text>
             <TouchableOpacity onPress={() => setShowSeekerCard(false)} style={styles.modalClose}>
               <Ionicons name="close" size={22} color="#0F172A" />
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.modalScroll} contentContainerStyle={{ alignItems: "center", paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-            <Text style={styles.cardSubtitle}>Share this card with employers</Text>
+            <Text style={styles.cardSubtitle}>{t("Share this card with employers") || "Share this card with employers"}</Text>
 
             <View style={styles.seekerCard}>
               <LinearGradient
@@ -1090,6 +976,7 @@ function GuestView({
   insets: { top: number };
   isWeb: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={[guestStyles.container, { paddingTop: isWeb ? 67 : insets.top }]}>
       <LinearGradient colors={["#1D4ED8", "#2563EB", "#3B82F6"]} style={guestStyles.top}>
@@ -1098,18 +985,18 @@ function GuestView({
         </View>
       </LinearGradient>
       <View style={guestStyles.body}>
-        <Text style={guestStyles.title}>Create Your Profile</Text>
-        <Text style={guestStyles.sub}>Get matched with local jobs based on your skills and experience</Text>
+        <Text style={guestStyles.title}>{t("Create Your Profile")}</Text>
+        <Text style={guestStyles.sub}>{t("Get matched with local jobs based on your skills and experience")}</Text>
         <View style={guestStyles.perks}>
           {["Track applied jobs", "Save favourites", "Get a shareable Job Card", "Build your profile"].map((p) => (
             <View key={p} style={guestStyles.perkRow}>
               <Ionicons name="checkmark-circle" size={18} color="#2563EB" />
-              <Text style={guestStyles.perkText}>{p}</Text>
+              <Text style={guestStyles.perkText}>{t(p)}</Text>
             </View>
           ))}
         </View>
         <TouchableOpacity style={guestStyles.btn} onPress={onSignIn} activeOpacity={0.85}>
-          <Text style={guestStyles.btnText}>Sign In / Register</Text>
+          <Text style={guestStyles.btnText}>{t("Sign In / Register")}</Text>
         </TouchableOpacity>
       </View>
     </View>

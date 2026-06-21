@@ -93,8 +93,11 @@ export default function HomeScreen() {
     const activeJobs = postedJobs.filter(j => true).length; // using true since status override is handled in AppContext locally
 
     // Total applicants across all jobs belonging to this employer
-    const totalApps = applications.length;
-    const upcomingInterviews = applications.filter(a => a.status === "interview").length;
+    const employerJobIds = postedJobs.map(j => j.id);
+    const employerApps = applications.filter(a => employerJobIds.includes(a.jobId));
+    
+    const totalApps = employerApps.length;
+    const upcomingInterviews = employerApps.filter(a => a.status === "interview").length;
 
     setEmployerMetrics({
       jobsPosted: postedJobs.length,
@@ -192,32 +195,6 @@ export default function HomeScreen() {
             <DashboardCard label={t("Interviews")} value={String(employerMetrics.upcomingInterviews)} icon="calendar" />
             <DashboardCard label={t("Jobs Posted")} value={String(employerMetrics.jobsPosted)} icon="document-text" />
           </View>
-
-          <View style={styles.quickActionsRow}>
-            <DashboardAction
-              icon="add-circle"
-              label={t("Post Job")}
-              onPress={() => requireAuthAction(() => router.push("/post-job"), { title: t("Sign in to Post Job"), description: t("Create an employer account to post jobs."), maybeLaterText: t("Maybe Later") })}
-              highlighted
-            />
-            <DashboardAction
-              icon="briefcase"
-              label={t("Manage Jobs")}
-              onPress={() => requireAuthAction(() => router.push("/(tabs)/jobs"), { title: t("Sign in to Manage Jobs"), description: t("Create an employer account to manage your jobs."), maybeLaterText: t("Maybe Later") })}
-            />
-            <DashboardAction
-              icon="people"
-              label={t("View Applicants")}
-              onPress={() => requireAuthAction(() => {
-                const firstJob = postedJobs[0];
-                if (firstJob) {
-                  router.push(`/employer/applicants/${firstJob.id}`);
-                } else {
-                  router.push("/(tabs)/jobs");
-                }
-              }, { title: t("Sign in to View Applicants"), description: t("Create an employer account to view applicants."), maybeLaterText: t("Maybe Later") })}
-            />
-          </View>
         </LinearGradient>
 
         <SectionHeader title={t("Live Listings")} subtitle={`${postedJobs.length} ${t("active jobs")}`} />
@@ -244,18 +221,8 @@ export default function HomeScreen() {
           ))
         )}
 
-        <SectionHeader title={t("Top Performing Job")} subtitle={t("Most applications received")} />
-        {postedJobs.length > 0 ? (
-          <EmployerPreviewRow
-            job={[...postedJobs].sort((a,b) => b.applicants - a.applicants)[0]}
-            onPress={() => router.push(`/employer/applicants/${[...postedJobs].sort((a,b) => b.applicants - a.applicants)[0].id}`)}
-          />
-        ) : (
-          <EmptyInline title={t("No data yet")} text={t("Your top performing job will appear here.")} />
-        )}
-
         <SectionHeader title={t("Recent Applicants")} subtitle={t("Candidates who applied recently")} />
-        {applications.slice(0, 3).length > 0 ? applications.slice(0, 3).map(app => (
+        {postedJobs.length > 0 && applications.filter(a => postedJobs.some(j => j.id === a.jobId)).slice(0, 3).length > 0 ? applications.filter(a => postedJobs.some(j => j.id === a.jobId)).slice(0, 3).map(app => (
            <View key={app.id} style={styles.recentApplicantRow}>
              <View style={styles.raAvatar}>
                <Text style={styles.raAvatarText}>{app.name.charAt(0)}</Text>
@@ -276,7 +243,7 @@ export default function HomeScreen() {
         )}
 
         <SectionHeader title={t("Upcoming Interviews")} subtitle={t("Interviews scheduled")} />
-        {applications.filter(a => a.status === "interview").slice(0, 3).length > 0 ? applications.filter(a => a.status === "interview").slice(0, 3).map(app => (
+        {postedJobs.length > 0 && applications.filter(a => postedJobs.some(j => j.id === a.jobId) && a.status === "interview").slice(0, 3).length > 0 ? applications.filter(a => postedJobs.some(j => j.id === a.jobId) && a.status === "interview").slice(0, 3).map(app => (
            <View key={app.id + "iv"} style={styles.interviewRow}>
              <View style={styles.ivDateBox}>
                <Text style={styles.ivDateDay}>{new Date(app.interviewDate || "").getDate()}</Text>
@@ -305,7 +272,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <SearchHeader
-        greeting={`${t(getGreeting())}${user.name && user.name !== "Guest User" ? `, ${user.name}` : ""}`}
+        greeting={`${t(getGreeting())}${user.name ? `, ${user.name}` : ''}`}
         searchValue={search}
         onSearchChange={setSearch}
         onNotification={() => router.push("/notifications")}
@@ -397,7 +364,7 @@ export default function HomeScreen() {
                         : { color: colors.foreground },
                     ]}
                   >
-                    {loc}
+                    {t(loc)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -556,9 +523,9 @@ export default function HomeScreen() {
           search.length > 0 ? (
             <EmptyState
               icon="search-outline"
-              title="No jobs found"
-              text="Try a different keyword or clear the filters."
-              actionLabel="Clear Search"
+              title={t("No jobs found")}
+              text={t("Try a different keyword or clear the filters.")}
+              actionLabel={t("Clear Search")}
               onAction={() => {
                 setSearch("");
                 setSelectedLocality("All Areas");
@@ -639,6 +606,7 @@ function EmployerPreviewRow({
   job: Job;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <TouchableOpacity style={previewStyles.card} onPress={onPress} activeOpacity={0.82}>
       <View style={[previewStyles.logo, { backgroundColor: `${job.logoColor}18` }]}>
@@ -649,18 +617,18 @@ function EmployerPreviewRow({
           {job.title}
         </Text>
         <Text style={previewStyles.meta} numberOfLines={1}>
-          {job.location} · {job.salary}
+          {t(job.location)} · {job.salary}
         </Text>
         <View style={previewStyles.row}>
           {job.isUrgent && (
             <View style={previewStyles.badgeUrgent}>
               <Ionicons name="flash" size={10} color="#DC2626" />
-              <Text style={previewStyles.badgeTextUrgent}>Urgent</Text>
+              <Text style={previewStyles.badgeTextUrgent}>{t("Urgent")}</Text>
             </View>
           )}
           <View style={previewStyles.badgeApplicants}>
             <Ionicons name="people" size={10} color="#059669" />
-            <Text style={previewStyles.badgeTextApplicants}>{job.applicants} applicants</Text>
+            <Text style={previewStyles.badgeTextApplicants}>{applications.filter((a) => a.jobId === job.id).length} {t("applicants")}</Text>
           </View>
         </View>
       </View>
@@ -678,6 +646,7 @@ function SectionHeader({
   subtitle?: string;
   onSeeAll?: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={sectionStyles.row}>
       <View style={sectionStyles.left}>
@@ -686,7 +655,7 @@ function SectionHeader({
       </View>
       {onSeeAll ? (
         <TouchableOpacity style={sectionStyles.action} onPress={onSeeAll} activeOpacity={0.75}>
-          <Text style={sectionStyles.actionText}>See all</Text>
+          <Text style={sectionStyles.actionText}>{t("See all")}</Text>
           <Ionicons name="chevron-forward" size={14} color="#2563EB" />
         </TouchableOpacity>
       ) : null}

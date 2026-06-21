@@ -16,7 +16,7 @@ export default function MyApplicationsScreen() {
 
   const myApplications = useMemo(() => {
     return applications
-      .filter(a => a.name === user.name || a.name === "Guest User" || a.phone === user.phone) // basic matching for demo
+      .filter(a => a.applicant_id === user.id) // filter by authenticated applicant identity
       .filter(a => filter === "All" || a.status.toLowerCase() === filter.toLowerCase());
   }, [applications, filter, user]);
 

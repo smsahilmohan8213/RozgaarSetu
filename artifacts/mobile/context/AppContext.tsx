@@ -5,7 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import type { Job, JobCategory } from "@/data/jobs";
 import { LOCALITIES } from "@/data/jobs";
 import { AuthModal } from "@/components/AuthModal";
-import { Applicant, ApplicantStatus, MOCK_APPLICANTS } from "@/data/applicants";
+import { Applicant, ApplicantStatus } from "@/data/applicants";
 
 import { ensureProfileRow, signInWithPhoneOtpMock } from "@/lib/authSupabase";
 import { supabase } from "@/lib/supabaseClient";
@@ -22,7 +22,7 @@ export enum Locale {
 export type LocaleKey = `${Locale}`;
 
 export interface UserProfile {
-
+  id: string;
   name: string;
   phone: string;
   role: UserRole;
@@ -100,6 +100,7 @@ interface AppContextType {
 
 
 const DEFAULT_USER: UserProfile = {
+  id: "",
   name: "",
   phone: "",
   role: null,
@@ -160,7 +161,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [selectedLocality, setSelectedLocality] = useState<string>("All Areas");
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [applicationDatesByJobId, setApplicationDatesByJobId] = useState<Record<string, string>>({});
-  const [applications, setApplications] = useState<Applicant[]>(MOCK_APPLICANTS);
+  const [applications, setApplications] = useState<Applicant[]>([]);
 
   // Phase 2 Step 1: saved_jobs hydration from Supabase (authoritative)
   const [isHydratingSavedJobs, setIsHydratingSavedJobs] = useState(false);
@@ -477,6 +478,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const newUser = loadedUser ?? {
       ...user, // Preserve current state like language
+      id: userId,
       name,
       phone,
       role,
@@ -709,21 +711,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setApplicationDatesByJobId(appliedAtNext);
 
-    // Create a mock local Application record
-    const newApp: Applicant = {
-      id: `app_${Math.random().toString(36).substring(7)}`,
-      jobId,
-      name: user.name || "Guest User",
-      experience: user.experience || "Fresher",
-      skills: user.skills || [],
-      appliedDate: new Date().toISOString(),
-      status: "applied",
-      phone: user.phone || "",
-      email: "",
-      location: user.location || "",
-    };
-    setApplications(prev => [newApp, ...prev]);
-
     // Increment applicant count for the job (offline cache only)
     const jobIndex = postedJobs.findIndex((j) => j.id === jobId);
     if (jobIndex !== -1) {
@@ -758,8 +745,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.from("applications").insert({
         job_id: jobId,
         applicant_id: userId,
-        applicant_name: user.name || null,
-        phone: user.phone || null,
         status: "applied",
         applied_at: appliedAtNext[jobId]
           ? new Date(appliedAtNext[jobId]).toISOString()

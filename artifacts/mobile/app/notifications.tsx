@@ -6,9 +6,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
+import { useTranslation } from "@/hooks/useTranslation";
 import { MOCK_NOTIFICATIONS, AppNotification, NotificationCategory } from "@/data/notifications";
 
 export default function NotificationsScreen() {
+  const { t } = useTranslation();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -65,13 +67,13 @@ export default function NotificationsScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Ionicons name="arrow-back" size={22} color="#0F172A" />
           </TouchableOpacity>
-          <Text style={styles.title}>Notifications</Text>
+          <Text style={styles.title}>{t("Notifications")}</Text>
         </View>
         <View style={styles.guestCenter}>
           <Ionicons name="notifications-off-outline" size={60} color="#94A3B8" />
-          <Text style={styles.guestTitle}>Sign in to view notifications</Text>
+          <Text style={styles.guestTitle}>{t("Sign in to view notifications")}</Text>
           <TouchableOpacity style={styles.signInBtn} onPress={() => router.push("/auth")}>
-            <Text style={styles.signInBtnText}>Sign In</Text>
+            <Text style={styles.signInBtnText}>{t("Sign In")}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -84,17 +86,17 @@ export default function NotificationsScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={22} color="#0F172A" />
         </TouchableOpacity>
-        <Text style={styles.title}>Notifications</Text>
+        <Text style={styles.title}>{t("Notifications")}</Text>
       </View>
 
       <View style={styles.filterTabs}>
         {(["all", "job_matches", "applications", "profile_updates"] as const).map(cat => {
            if (isEmployer && cat === "job_matches") return null;
            if (isEmployer && cat === "applications") return null;
-           const label = cat === "all" ? "All" : 
-                         cat === "job_matches" ? "Job Matches" : 
-                         cat === "applications" ? "Applications" : 
-                         "Profile";
+           const label = cat === "all" ? t("All") : 
+                         cat === "job_matches" ? t("Job Matches") : 
+                         cat === "applications" ? t("Applications") : 
+                         t("Profile");
            
            return (
              <TouchableOpacity 
@@ -111,7 +113,7 @@ export default function NotificationsScreen() {
             style={[styles.filterChip, filter === "employer_updates" && styles.filterChipActive]}
             onPress={() => setFilter("employer_updates")}
           >
-            <Text style={[styles.filterText, filter === "employer_updates" && styles.filterTextActive]}>Employer Updates</Text>
+            <Text style={[styles.filterText, filter === "employer_updates" && styles.filterTextActive]}>{t("Employer Updates")}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -123,8 +125,8 @@ export default function NotificationsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyCenter}>
             <Ionicons name="notifications-outline" size={50} color="#CBD5E1" />
-            <Text style={styles.emptyTitle}>No notifications yet</Text>
-            <Text style={styles.emptyText}>We'll let you know when something important happens.</Text>
+            <Text style={styles.emptyTitle}>{t("No notifications yet")}</Text>
+            <Text style={styles.emptyText}>{t("We'll let you know when something important happens.")}</Text>
           </View>
         }
         renderItem={({ item }) => {
@@ -136,8 +138,8 @@ export default function NotificationsScreen() {
                 <Ionicons name={getCategoryIcon(item.category) as any} size={20} color={color} />
               </View>
               <View style={styles.notifContent}>
-                <Text style={[styles.notifTitle, !item.isRead && styles.notifTitleUnread]}>{item.title}</Text>
-                <Text style={styles.notifBody}>{item.body}</Text>
+                <Text style={[styles.notifTitle, !item.isRead && styles.notifTitleUnread]}>{t(item.title)}</Text>
+                <Text style={styles.notifBody}>{t(item.body)}</Text>
                 <Text style={styles.notifTime}>{formatTimeAgo(item.timestamp)}</Text>
               </View>
             </TouchableOpacity>

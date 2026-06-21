@@ -1,6 +1,7 @@
 export type UserRole = "seeker" | "employer" | null;
 
 export interface UserProfile {
+  id: string;
   name: string;
   phone: string;
   role: UserRole;
