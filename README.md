@@ -1,57 +1,63 @@
-RozgaarSetu
+# RozgaarSetu
 
-RozgaarSetu is an open-source hyperlocal job platform designed to connect job seekers with nearby employment opportunities across India.
+> Open-source hyperlocal employment platform connecting job seekers with nearby opportunities across India.
 
-Mission
+## 🌟 Vision
 
-Millions of job seekers struggle to find trustworthy local jobs close to their homes. RozgaarSetu aims to bridge this gap by helping candidates discover nearby opportunities and helping employers hire faster within their local communities.
+RozgaarSetu aims to make local job discovery simple, accessible, and trustworthy for every job seeker in India.
 
-Key Features
+## 🚨 The Problem
+
+Millions of candidates depend on WhatsApp groups, word-of-mouth, and informal networks to find jobs. Small businesses struggle to reach qualified local candidates.
+
+## 💡 Our Solution
+
+RozgaarSetu bridges the gap between employers and job seekers through a modern, mobile-first platform focused on hyperlocal hiring.
+
+## ✨ Features
 
 - 📍 Hyperlocal job discovery
-- 💼 Jobs near your location
-- ⚡ Quick Apply experience
-- 🏢 Verified employer profiles
-- ❤️ Save jobs for later
-- 🔔 Job alerts and notifications
-- 📱 Mobile-first user experience
-- 🌐 Multi-language support (planned)
-- 🤖 AI-powered job recommendations (planned)
+- 💼 Nearby job recommendations
+- ⚡ One-tap job applications
+- ❤️ Save jobs
+- 🔔 Job notifications
+- 🏢 Verified employers
+- 📱 Mobile-first design
+- 🤖 AI-powered recommendations (planned)
 
-Problem We Are Solving
+## 🖼 Screenshots
 
-Many job seekers rely on informal networks, WhatsApp groups, or word of mouth to find work. Small businesses also struggle to reach qualified local candidates.
+(Add app screenshots here)
 
-RozgaarSetu creates a digital bridge between employers and job seekers through a simple and accessible platform.
+## 🏗 Architecture
 
-Technology Stack
+Frontend: React Native + Expo
+Backend: Supabase
+Authentication: Supabase Auth
+Database: PostgreSQL
+Hosting: Supabase
 
-- React Native / Expo
-- TypeScript
-- Supabase
-- Firebase
-- Tailwind CSS
+## 🚀 Roadmap
 
-Current Status
+### Phase 1 (MVP)
+- [x] Job listings
+- [x] Job details
+- [x] Apply feature
 
-🚧 Active Development
-
-RozgaarSetu is currently under active development. New features, improvements, and bug fixes are being added regularly.
-
-Roadmap
-
+### Phase 2
 - [ ] Candidate profiles
 - [ ] Employer dashboard
 - [ ] Resume builder
-- [ ] Interview scheduling
-- [ ] AI job matching
-- [ ] Referral system
+
+### Phase 3
+- [ ] AI Job Matching
+- [ ] Voice Search
 - [ ] Multi-language support
 
-Contributing
+## 🤝 Contributing
 
 Contributions, feedback, and feature suggestions are welcome.
 
-License
+## 📜 License
 
 MIT License
