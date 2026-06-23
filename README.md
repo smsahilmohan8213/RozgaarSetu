@@ -25,9 +25,19 @@ RozgaarSetu bridges the gap between employers and job seekers through a modern, 
 - 📱 Mobile-first design
 - 🤖 AI-powered recommendations (planned)
 
-## 🖼 Screenshots
+## 📸 Screenshots
 
-(Add app screenshots here)
+### Job Seeker Home
+![](Screenshot_2026-06-21-20-20-01-23_f73b71075b1de7323614b647fe394240.jpg)
+
+### Jobs Screen
+![](Screenshot_2026-06-21-23-32-07-30_f73b71075b1de7323614b647fe394240.jpg)
+
+### Candidate Profile
+![](Screenshot_2026-06-20-20-05-11-98_f73b71075b1de7323614b647fe394240.jpg)
+
+### Employer Dashboard
+![](Screenshot_2026-06-20-20-01-39-44_f73b71075b1de7323614b647fe394240.jpg)
 
 ## 🏗 Architecture
 
